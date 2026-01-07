@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { queryKeys } from "../lib/queryClient";
 import { useAuthStore } from "../stores";
 import type { Prompt, AuthUser, Pagination } from "../lib/schemas";
+import type { UpdateProfileData, ChangePasswordData } from "../types/api";
+import { toast } from "../stores/uiStore";
 
 interface UserProfile {
   id: string;
@@ -104,6 +106,55 @@ export function useSavedPrompts(page = 1) {
 }
 
 /**
+ * Update user profile
+ */
+export function useUpdateProfile() {
+  const { login } = useAuthStore();
+  const token = useAuthStore.getState().accessToken;
+
+  return useMutation({
+    mutationFn: async (data: UpdateProfileData) => {
+      const response = await api.patch<{ user: AuthUser }>("/api/users/me", data);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Failed to update profile");
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Update local state by re-logging in with new user data but same token
+      if (token) {
+        login(data.user, token);
+      }
+      toast.success("Profile updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Change user password
+ */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (data: ChangePasswordData) => {
+      const response = await api.post("/auth/change-password", data);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to change password");
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Password changed successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
  * Refresh current user from token
  */
 export function useRefreshUser() {
@@ -126,3 +177,4 @@ export function useRefreshUser() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
+

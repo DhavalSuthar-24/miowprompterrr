@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { AuthRequest } from "../types/request";
 import { prisma } from "../db";
 import { hashPassword, verifyPassword, validatePasswordStrength } from "../utils/password";
 import {
@@ -9,6 +10,7 @@ import {
 } from "../utils/jwt";
 import { hashToken, sanitizeEmail, sanitizeUsername, sanitizeInput } from "../utils/security";
 import { authenticate, loadPermissions } from "../middleware";
+import { authLimiter } from "../middleware/security";
 
 const router = Router();
 
@@ -16,7 +18,7 @@ const router = Router();
  * POST /auth/register
  * Register a new user with email/password
  */
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", authLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password, name, username } = req.body;
 
@@ -179,7 +181,7 @@ router.post("/register", async (req: Request, res: Response) => {
  * POST /auth/login
  * Login with email/password
  */
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", authLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -292,6 +294,87 @@ router.post("/login", async (req: Request, res: Response) => {
       success: false,
       error: "Server error",
       message: "Failed to login",
+    });
+  }
+});
+
+/**
+ * POST /auth/change-password
+ * Change current user's password
+ */
+router.post("/change-password", authenticate, async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = (req as AuthRequest).user?.userId;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        error: "Validation error",
+        message: "Current and new password are required",
+      });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.password) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+        message: "User not found or uses external auth",
+      });
+      return;
+    }
+
+    // Verify current password
+    const isValid = await verifyPassword(currentPassword, user.password);
+    if (!isValid) {
+      res.status(401).json({
+        success: false,
+        error: "Invalid password",
+        message: "Current password is incorrect",
+      });
+      return;
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        success: false,
+        error: "Weak password",
+        message: passwordValidation.errors[0],
+        errors: passwordValidation.errors,
+      });
+      return;
+    }
+
+    // Update password
+    const hashedPassword = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    // Revoke all refresh tokens (security best practice)
+    await prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully. Please login again.",
+    });
+
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to change password",
     });
   }
 });

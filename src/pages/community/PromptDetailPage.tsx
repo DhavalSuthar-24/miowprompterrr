@@ -1,16 +1,17 @@
 import { Clock, Eye, Copy, Bookmark, Share2, MessageCircle, Sparkles, ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { CommunityLayout } from "../../components/layout";
 import { VoteButtons, TagBadge, CommentSection, AuthorLink } from "../../components/community";
+import { Skeleton, MarkdownRenderer } from "../../components/common";
+import { SEOHead } from "../../components/seo";
 import { usePrompt, useCopyPrompt, useSavePrompt, useDeletePrompt } from "../../hooks";
 import { useAuth } from "../../contexts";
 
-interface PromptDetailPageProps {
-  promptId: string;
-  onBack?: () => void;
-  onNavigate?: (path: string) => void;
-}
+import { useNavigate, useParams } from "react-router-dom";
 
-export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailPageProps) {
+export function PromptDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const promptId = id || "";
   const { user, isAuthenticated } = useAuth();
   const { data: prompt, isLoading, error } = usePrompt(promptId);
   const copyMutation = useCopyPrompt();
@@ -36,15 +37,15 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this prompt?")) return;
     await deleteMutation.mutateAsync(promptId);
-    onNavigate?.("/");
+    navigate("/");
   };
 
   const handleTagClick = (slug: string) => {
-    onNavigate?.(`/?tag=${slug}`);
+    navigate(`/?tag=${slug}`);
   };
 
   const handleAuthorClick = (username: string) => {
-    onNavigate?.(`/u/${username}`);
+    navigate(`/u/${username}`);
   };
 
   const formatDate = (dateStr: string) => {
@@ -63,10 +64,10 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
     return (
       <CommunityLayout showSidebar={false}>
         <div className="max-w-3xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-slate-800 rounded w-3/4" />
-            <div className="h-4 bg-slate-800 rounded w-1/2" />
-            <div className="h-64 bg-slate-800 rounded" />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-64" />
           </div>
         </div>
       </CommunityLayout>
@@ -79,7 +80,7 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
         <div className="max-w-3xl mx-auto text-center py-12">
           <p className="text-slate-400 mb-4">Prompt not found</p>
           <button
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="text-blue-400 hover:text-blue-300"
           >
             Go back
@@ -91,10 +92,15 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
 
   return (
     <CommunityLayout showSidebar={false}>
+      <SEOHead
+        title={prompt.title}
+        description={prompt.content.slice(0, 160)}
+        type="article"
+      />
       <div className="max-w-3xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={onBack}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-slate-400 hover:text-slate-200 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -166,10 +172,8 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
 
           {/* Content */}
           <div className="p-6">
-            <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 mb-6">
-              <pre className="whitespace-pre-wrap text-sm text-slate-200 font-mono">
-                {prompt.content}
-              </pre>
+            <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 mb-6 text-sm">
+              <MarkdownRenderer content={prompt.content} />
             </div>
 
             {/* Stats */}
@@ -227,7 +231,7 @@ export function PromptDetailPage({ promptId, onBack, onNavigate }: PromptDetailP
               {isOwner && (
                 <>
                   <button
-                    onClick={() => onNavigate?.(`/prompts/${promptId}/edit`)}
+                    onClick={() => navigate(`/prompts/${promptId}/edit`)}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors ml-auto"
                   >
                     <Edit className="w-4 h-4" />

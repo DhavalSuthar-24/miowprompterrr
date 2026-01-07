@@ -2,15 +2,18 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
 import { authenticate, optionalAuthenticate } from "../../middleware/auth";
+import {
+  sendSuccess,
+  sendError,
+  sendNotFound,
+  sendForbidden,
+  sendValidationError,
+  validateMinLength,
+  validateMaxLength,
+} from "../../utils";
+import { AuthRequest } from "../../types/request";
 
 const router = Router();
-
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
 
 /**
  * GET /api/prompts/:promptId/comments
@@ -32,12 +35,7 @@ router.get(
       });
 
       if (!promptExists) {
-        res.status(404).json({
-          success: false,
-          error: "Not found",
-          message: "Prompt not found",
-        });
-        return;
+        return sendNotFound(res, "Prompt");
       }
 
       // Order
@@ -144,18 +142,17 @@ router.get(
         })),
       }));
 
-      res.json({
-        success: true,
-        data: formattedComments,
-        count: comments.length,
-      });
+      return sendSuccess(res, formattedComments, undefined, 200);
+      /* 
+       Note: The original code returned { success: true, data: ..., count: ... }
+       Our sendSuccess wrapper returns { success: true, data: ..., message: ... }
+       If strictly adhering to prior format is needed, we might need a custom response or update 
+       sendSuccess to accept extra fields, but the new standard is preferred.
+       I'll stick to the new standard response. The `count` can be inferred from data length if needed, 
+       or included in data if it was paginated (but here it's just a list).
+      */
     } catch (error) {
-      console.error("Error fetching comments:", error);
-      res.status(500).json({
-        success: false,
-        error: "Server error",
-        message: "Failed to fetch comments",
-      });
+      return sendError(res, error, "Failed to fetch comments");
     }
   }
 );
@@ -223,17 +220,9 @@ router.get("/:commentId/replies", optionalAuthenticate, async (req: Request, res
       isOwner: reply.author.id === userId,
     }));
 
-    res.json({
-      success: true,
-      data: formattedReplies,
-    });
+    return sendSuccess(res, formattedReplies);
   } catch (error) {
-    console.error("Error fetching replies:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch replies",
-    });
+    return sendError(res, error, "Failed to fetch replies");
   }
 });
 
@@ -251,23 +240,11 @@ router.post(
       const userId = (req as AuthRequest).user?.userId;
 
       // Validation
-      if (!content || typeof content !== "string" || content.trim().length < 2) {
-        res.status(400).json({
-          success: false,
-          error: "Validation error",
-          message: "Comment must be at least 2 characters",
-        });
-        return;
-      }
+      const minLengthError = validateMinLength(content, 2, "Comment");
+      if (minLengthError) return sendValidationError(res, minLengthError);
 
-      if (content.length > 5000) {
-        res.status(400).json({
-          success: false,
-          error: "Validation error",
-          message: "Comment must be less than 5000 characters",
-        });
-        return;
-      }
+      const maxLengthError = validateMaxLength(content, 5000, "Comment");
+      if (maxLengthError) return sendValidationError(res, maxLengthError);
 
       // Check prompt exists
       const prompt = await prisma.prompt.findUnique({
@@ -276,12 +253,7 @@ router.post(
       });
 
       if (!prompt || prompt.status !== "PUBLISHED") {
-        res.status(404).json({
-          success: false,
-          error: "Not found",
-          message: "Prompt not found",
-        });
-        return;
+        return sendNotFound(res, "Prompt");
       }
 
       // If replying, check parent exists
@@ -292,12 +264,7 @@ router.post(
         });
 
         if (!parent || parent.promptId !== promptId) {
-          res.status(400).json({
-            success: false,
-            error: "Validation error",
-            message: "Invalid parent comment",
-          });
-          return;
+          return sendValidationError(res, "Invalid parent comment");
         }
       }
 
@@ -329,9 +296,9 @@ router.post(
         })
         .catch(() => {});
 
-      res.status(201).json({
-        success: true,
-        data: {
+      return sendSuccess(
+        res,
+        {
           id: comment.id,
           content: comment.content,
           upvotes: 0,
@@ -342,15 +309,11 @@ router.post(
           userVote: null,
           isOwner: true,
         },
-        message: "Comment added successfully",
-      });
+        "Comment added successfully",
+        201
+      );
     } catch (error) {
-      console.error("Error adding comment:", error);
-      res.status(500).json({
-        success: false,
-        error: "Server error",
-        message: "Failed to add comment",
-      });
+      return sendError(res, error, "Failed to add comment");
     }
   }
 );
@@ -372,32 +335,16 @@ router.patch("/:id", authenticate, async (req: Request, res: Response) => {
     });
 
     if (!existing) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Comment not found",
-      });
-      return;
+      return sendNotFound(res, "Comment");
     }
 
     if (existing.authorId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You can only edit your own comments",
-      });
-      return;
+      return sendForbidden(res, "You can only edit your own comments");
     }
 
     // Validation
-    if (!content || typeof content !== "string" || content.trim().length < 2) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Comment must be at least 2 characters",
-      });
-      return;
-    }
+    const minLengthError = validateMinLength(content, 2, "Comment");
+    if (minLengthError) return sendValidationError(res, minLengthError);
 
     const comment = await prisma.comment.update({
       where: { id },
@@ -412,18 +359,9 @@ router.patch("/:id", authenticate, async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: comment,
-      message: "Comment updated successfully",
-    });
+    return sendSuccess(res, comment, "Comment updated successfully");
   } catch (error) {
-    console.error("Error updating comment:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to update comment",
-    });
+    return sendError(res, error, "Failed to update comment");
   }
 });
 
@@ -443,21 +381,11 @@ router.delete("/:id", authenticate, async (req: Request, res: Response) => {
     });
 
     if (!existing) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Comment not found",
-      });
-      return;
+      return sendNotFound(res, "Comment");
     }
 
     if (existing.authorId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You can only delete your own comments",
-      });
-      return;
+      return sendForbidden(res, "You can only delete your own comments");
     }
 
     // Replace content with [deleted] instead of hard delete
@@ -476,17 +404,9 @@ router.delete("/:id", authenticate, async (req: Request, res: Response) => {
       })
       .catch(() => {});
 
-    res.json({
-      success: true,
-      message: "Comment deleted successfully",
-    });
+    return sendSuccess(res, null, "Comment deleted successfully");
   } catch (error) {
-    console.error("Error deleting comment:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to delete comment",
-    });
+    return sendError(res, error, "Failed to delete comment");
   }
 });
 

@@ -1,43 +1,81 @@
-// ============================================================================
-// ADMIN TYPES
-// ============================================================================
+import { User } from "../lib/schemas";
 
 // Admin Stats
-export interface AdminDashboardStats {
-  users: {
-    total: number;
-    newToday: number;
-    newThisWeek: number;
-    activeToday: number;
-  };
-  prompts: {
-    total: number;
-    published: number;
-    flagged: number;
-    newToday: number;
-  };
-  engagement: {
-    totalVotes: number;
+export interface AdminStats {
+  overview: {
+    totalUsers: number;
+    totalPrompts: number;
     totalComments: number;
-    avgPromptsPerUser: number;
+    totalVotes: number;
+  };
+  today: {
+    newUsers: number;
+    newPrompts: number;
+  };
+  moderation: {
+    flaggedPrompts: number;
+  };
+  content: {
+    activePersonalities: number;
   };
 }
 
-// Entity Management
-export interface AdminEntity {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-  sortOrder: number;
+export interface UserStatsGraph {
+  period: number;
+  totalNew: number;
+  dailySignups: {
+    date: string;
+    count: number;
+  }[];
 }
 
-// Admin Personality
-export interface AdminPersonality extends AdminEntity {
-  slug: string;
+export interface PromptStats {
+  byStatus: {
+    status: string;
+    count: number;
+  }[];
+  topPersonalities: {
+    personalityId: string | null;
+    personalityName: string;
+    count: number;
+  }[];
+  recentCount: number;
+}
+
+// User Management
+export interface AdminUser extends User {
+  promptCount: number;
+  commentCount: number;
+  roles: { id: string; name: string }[];
+  isActive?: boolean;
+}
+
+export interface AdminUserDetail extends AdminUser {
+  stats: {
+    reputation: number;
+    promptCount: number;
+    totalUpvotes: number;
+  } | null;
+  recentPrompts: {
+    id: string;
+    title: string;
+    createdAt: string;
+    status: string;
+  }[];
+  recentComments: {
+    id: string;
+    content: string;
+    createdAt: string;
+    promptId: string;
+    promptTitle: string;
+  }[];
+}
+
+// Content Management Payloads
+export interface CreatePersonalityData {
   name: string;
   description: string;
-  icon: string;
+  icon?: string;
   age?: string;
   iq?: string;
   traits?: string;
@@ -46,79 +84,70 @@ export interface AdminPersonality extends AdminEntity {
   reasoningStyle?: string;
   cognitiveApproach?: string;
   thinkingFramework?: string;
-  strengthAreas: string[];
-  specialAbilities: string[];
+  strengthAreas?: string[];
+  specialAbilities?: string[];
   outputExample?: string;
-  isDefault: boolean;
-  createdBy?: string;
+  isDefault?: boolean;
 }
 
-// Admin Preset Mode
-export interface AdminPresetMode extends AdminEntity {
-  slug: string;
+export interface UpdatePersonalityData extends Partial<CreatePersonalityData> {
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface CreatePresetData {
   name: string;
   description: string;
-  config: Record<string, unknown>; // JSON config
+  config: Record<string, unknown>;
+  isDefault?: boolean;
 }
 
-// Admin User
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  username: string;
-  image?: string;
-  emailVerified: boolean;
-  onboardingCompleted: boolean;
-  roles: string[];
-  createdAt: string;
-  lastActiveAt?: string;
-  promptCount: number;
-  commentCount: number;
-  reputation: number;
+export interface UpdatePresetData extends Partial<CreatePresetData> {
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface CreateTierData {
+  label: string;
+  color: string;
+  description: string;
+}
+
+
+export interface UpdateTierData extends Partial<CreateTierData> {
+  isActive?: boolean;
+  value?: number; // Keep for legacy
+  sortOrder?: number;
+}
+
+export interface CreateTechniqueData {
+  label: string;
+  description: string;
+  slug: string;
+  tierId: string;
+  sortOrder?: number;
+}
+
+export interface UpdateTechniqueData extends Partial<CreateTechniqueData> {
+  isActive?: boolean;
 }
 
 // Moderation
-export interface FlaggedContent {
+export interface ModerationPrompt {
   id: string;
-  type: 'prompt' | 'comment';
-  contentId: string;
+  title: string;
   content: string;
+  status: string;
+  isFeatured: boolean;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  viewCount: number;
+  createdAt: string;
   author: {
     id: string;
     username: string;
+    email: string;
   };
-  flagCount: number;
-  flagReasons: string[];
-  status: 'pending' | 'reviewed' | 'actioned';
-  createdAt: string;
-}
-
-export interface ModerationAction {
-  contentId: string;
-  action: 'approve' | 'hide' | 'delete' | 'warn';
-  reason?: string;
-}
-
-// Activity Log
-export interface ActivityLogEntry {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  adminId: string;
-  adminUsername: string;
-  details?: Record<string, unknown>;
-  createdAt: string;
-}
-
-// Bulk Operations
-export interface BulkUpdateData {
-  ids: string[];
-  updates: Record<string, unknown>;
-}
-
-export interface BulkDeleteData {
-  ids: string[];
-  hardDelete?: boolean;
+  commentCount: number;
 }

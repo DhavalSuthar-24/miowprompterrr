@@ -2,15 +2,48 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
 import { authenticate, optionalAuthenticate } from "../../middleware/auth";
+import { sendSuccess, sendError, sendPaginated, sendNotFound, sendForbidden } from "../../utils";
+import { AuthRequest } from "../../types/request";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
+
+
+/**
+ * PATCH /api/users/me
+ * Update current user profile
+ */
+router.patch("/me", authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    const { name, bio, image } = req.body;
+
+    if (!userId) return sendForbidden(res, "Not authenticated");
+
+    // Validate inputs
+    const updates: any = {};
+    if (name) updates.name = sanitizeInput(name).substring(0, 100);
+    if (image !== undefined) updates.image = image; // Allow null to remove image
+    // Note: Bio isn't in default User model, assuming we might add it or store in metadata/stats if needed.
+    // For now, let's just stick to name and image as they are in the schema.
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updates,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        image: true,
+      },
+    });
+
+    return sendSuccess(res, "Profile updated successfully", { user });
+  } catch (error) {
+    return sendError(res, error, "Failed to update profile");
+  }
+});
 
 /**
  * GET /api/users/:userId/prompts
@@ -35,12 +68,7 @@ router.get("/:userId/prompts", optionalAuthenticate, async (req: Request, res: R
     });
 
     if (!user) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "User not found",
-      });
-      return;
+      return sendNotFound(res, "User");
     }
 
     // Show all prompts if viewing own profile, otherwise only published
@@ -90,41 +118,34 @@ router.get("/:userId/prompts", optionalAuthenticate, async (req: Request, res: R
       },
     });
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          ...user,
-          stats: stats || { reputation: 0, promptCount: 0, totalUpvotes: 0 },
-        },
-        prompts: prompts.map((p) => ({
-          id: p.id,
-          title: p.title,
-          content: p.content.substring(0, 200) + (p.content.length > 200 ? "..." : ""),
-          upvotes: p.upvotes,
-          downvotes: p.downvotes,
-          score: p.score,
-          viewCount: p.viewCount,
-          status: p.status,
-          commentCount: p._count.comments,
-          createdAt: p.createdAt,
-          tags: p.tags.map((pt) => pt.tag),
-        })),
+    const data = {
+      user: {
+        ...user,
+        stats: stats || { reputation: 0, promptCount: 0, totalUpvotes: 0 },
       },
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
-      },
+      prompts: prompts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content.substring(0, 200) + (p.content.length > 200 ? "..." : ""),
+        upvotes: p.upvotes,
+        downvotes: p.downvotes,
+        score: p.score,
+        viewCount: p.viewCount,
+        status: p.status,
+        commentCount: p._count.comments,
+        createdAt: p.createdAt,
+        tags: p.tags.map((pt) => pt.tag),
+      })),
+    };
+
+    return sendPaginated(res, data, {
+      page: Number(page),
+      limit: Number(limit),
+      total: totalCount,
     });
+
   } catch (error) {
-    console.error("Error fetching user prompts:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch user prompts",
-    });
+    return sendError(res, error, "Failed to fetch user prompts");
   }
 });
 
@@ -141,12 +162,7 @@ router.get("/:userId/saved", authenticate, async (req: Request, res: Response) =
 
     // Only owner can view saved prompts
     if (currentUserId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You can only view your own saved prompts",
-      });
-      return;
+      return sendForbidden(res, "You can only view your own saved prompts");
     }
 
     const savedPrompts = await prisma.savedPrompt.findMany({
@@ -186,37 +202,30 @@ router.get("/:userId/saved", authenticate, async (req: Request, res: Response) =
     // Filter out deleted prompts
     const validSaved = savedPrompts.filter((s) => s.prompt.status === "PUBLISHED");
 
-    res.json({
-      success: true,
-      data: validSaved.map((s) => ({
-        savedAt: s.createdAt,
-        prompt: {
-          id: s.prompt.id,
-          title: s.prompt.title,
-          content: s.prompt.content.substring(0, 200) + (s.prompt.content.length > 200 ? "..." : ""),
-          upvotes: s.prompt.upvotes,
-          score: s.prompt.score,
-          viewCount: s.prompt.viewCount,
-          commentCount: s.prompt._count.comments,
-          createdAt: s.prompt.createdAt,
-          author: s.prompt.author,
-          tags: s.prompt.tags.map((pt) => pt.tag),
-        },
-      })),
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+    const data = validSaved.map((s) => ({
+      savedAt: s.createdAt,
+      prompt: {
+        id: s.prompt.id,
+        title: s.prompt.title,
+        content: s.prompt.content.substring(0, 200) + (s.prompt.content.length > 200 ? "..." : ""),
+        upvotes: s.prompt.upvotes,
+        score: s.prompt.score,
+        viewCount: s.prompt.viewCount,
+        commentCount: s.prompt._count.comments,
+        createdAt: s.prompt.createdAt,
+        author: s.prompt.author,
+        tags: s.prompt.tags.map((pt) => pt.tag),
       },
+    }));
+
+    return sendPaginated(res, data, {
+      page: Number(page),
+      limit: Number(limit),
+      total: totalCount,
     });
+
   } catch (error) {
-    console.error("Error fetching saved prompts:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch saved prompts",
-    });
+    return sendError(res, error, "Failed to fetch saved prompts");
   }
 });
 
@@ -312,39 +321,32 @@ router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
       savedPrompts = new Set(saved.map((s) => s.promptId));
     }
 
-    res.json({
-      success: true,
-      data: prompts.map((p) => ({
-        id: p.id,
-        title: p.title,
-        content: p.content.substring(0, 300) + (p.content.length > 300 ? "..." : ""),
-        upvotes: p.upvotes,
-        downvotes: p.downvotes,
-        score: p.score,
-        viewCount: p.viewCount,
-        commentCount: p._count.comments,
-        isFeatured: p.isFeatured,
-        createdAt: p.createdAt,
-        author: p.author,
-        personality: p.personality,
-        tags: p.tags.map((pt) => pt.tag),
-        userVote: userVotes[p.id] || null,
-        isSaved: savedPrompts.has(p.id),
-      })),
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
-      },
+    const data = prompts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      content: p.content.substring(0, 300) + (p.content.length > 300 ? "..." : ""),
+      upvotes: p.upvotes,
+      downvotes: p.downvotes,
+      score: p.score,
+      viewCount: p.viewCount,
+      commentCount: p._count.comments,
+      isFeatured: p.isFeatured,
+      createdAt: p.createdAt,
+      author: p.author,
+      personality: p.personality,
+      tags: p.tags.map((pt) => pt.tag),
+      userVote: userVotes[p.id] || null,
+      isSaved: savedPrompts.has(p.id),
+    }));
+
+    return sendPaginated(res, data, {
+      page: Number(page),
+      limit: Number(limit),
+      total: totalCount,
     });
+
   } catch (error) {
-    console.error("Error fetching feed:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch feed",
-    });
+    return sendError(res, error, "Failed to fetch feed");
   }
 });
 

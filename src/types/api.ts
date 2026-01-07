@@ -84,7 +84,14 @@ export interface User {
 export interface UpdateProfileData {
   name?: string;
   username?: string;
+  bio?: string;
+  image?: string;
   dob?: string;
+}
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // Onboarding Types

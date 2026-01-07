@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendNotFound } from "../../utils";
 
 const router = Router();
 
@@ -22,18 +23,9 @@ router.get("/", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: taskTypes,
-      count: taskTypes.length,
-    });
+    return sendSuccess(res, taskTypes);
   } catch (error) {
-    console.error("Error fetching task types:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch task types",
-    });
+    return sendError(res, error, "Failed to fetch task types");
   }
 });
 
@@ -50,25 +42,12 @@ router.get("/:value", async (req: Request, res: Response) => {
     });
 
     if (!taskType) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Task type not found",
-      });
-      return;
+      return sendNotFound(res, "Task type");
     }
 
-    res.json({
-      success: true,
-      data: taskType,
-    });
+    return sendSuccess(res, taskType);
   } catch (error) {
-    console.error("Error fetching task type:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch task type",
-    });
+    return sendError(res, error, "Failed to fetch task type");
   }
 });
 

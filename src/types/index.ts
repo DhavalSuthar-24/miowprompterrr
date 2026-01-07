@@ -77,14 +77,15 @@ export type {
 
 // Admin types
 export type {
-  AdminDashboardStats,
-  AdminEntity,
-  AdminPersonality,
-  AdminPresetMode,
+  AdminStats,
+  UserStatsGraph,
+  PromptStats,
   AdminUser,
-  FlaggedContent,
-  ModerationAction,
-  ActivityLogEntry,
-  BulkUpdateData,
-  BulkDeleteData,
+  AdminUserDetail,
+  CreatePersonalityData,
+  UpdatePersonalityData,
+  CreatePresetData,
+  UpdatePresetData,
+  CreateTierData,
+  UpdateTierData,
 } from './admin';

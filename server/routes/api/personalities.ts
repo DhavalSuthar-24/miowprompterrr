@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendNotFound } from "../../utils";
 
 const router = Router();
 
@@ -35,18 +36,9 @@ router.get("/", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: personalities,
-      count: personalities.length,
-    });
+    return sendSuccess(res, personalities);
   } catch (error) {
-    console.error("Error fetching personalities:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch personalities",
-    });
+    return sendError(res, error, "Failed to fetch personalities");
   }
 });
 
@@ -70,25 +62,12 @@ router.get("/:idOrSlug", async (req: Request, res: Response) => {
     }
 
     if (!personality) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Personality not found",
-      });
-      return;
+      return sendNotFound(res, "Personality");
     }
 
-    res.json({
-      success: true,
-      data: personality,
-    });
+    return sendSuccess(res, personality);
   } catch (error) {
-    console.error("Error fetching personality:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch personality",
-    });
+    return sendError(res, error, "Failed to fetch personality");
   }
 });
 

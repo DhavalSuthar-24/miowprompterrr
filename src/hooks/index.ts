@@ -1,3 +1,9 @@
+// Custom Hooks Index - Merged exports
+
+// Legacy JS hooks
+export { useMiowNationLogic } from './useMiowNationLogic.js';
+export { usePromptHistory, usePromptScorer, usePromptLibrary } from './usePromptFeatures.js';
+
 // Configuration hooks
 export {
   useConfig,
@@ -45,4 +51,9 @@ export {
   useUserPrompts,
   useSavedPrompts,
   useRefreshUser,
+  useUpdateProfile,
+  useChangePassword,
 } from "./useUser";
+
+// Admin hooks
+export * from "./useAdmin";

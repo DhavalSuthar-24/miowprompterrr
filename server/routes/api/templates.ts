@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendNotFound } from "../../utils";
 
 const router = Router();
 
@@ -22,18 +23,9 @@ router.get("/reasoning", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: templates,
-      count: templates.length,
-    });
+    return sendSuccess(res, templates);
   } catch (error) {
-    console.error("Error fetching reasoning templates:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch reasoning templates",
-    });
+    return sendError(res, error, "Failed to fetch reasoning templates");
   }
 });
 
@@ -60,18 +52,9 @@ router.get("/quick", async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: templates,
-      count: templates.length,
-    });
+    return sendSuccess(res, templates);
   } catch (error) {
-    console.error("Error fetching quick templates:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch quick templates",
-    });
+    return sendError(res, error, "Failed to fetch quick templates");
   }
 });
 
@@ -87,17 +70,9 @@ router.get("/quick/categories", async (_req: Request, res: Response) => {
       distinct: ["category"],
     });
 
-    res.json({
-      success: true,
-      data: categories.map((c) => c.category),
-    });
+    return sendSuccess(res, categories.map((c) => c.category));
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch categories",
-    });
+    return sendError(res, error, "Failed to fetch categories");
   }
 });
 
@@ -114,25 +89,12 @@ router.get("/reasoning/:slug", async (req: Request, res: Response) => {
     });
 
     if (!template) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Reasoning template not found",
-      });
-      return;
+      return sendNotFound(res, "Reasoning template");
     }
 
-    res.json({
-      success: true,
-      data: template,
-    });
+    return sendSuccess(res, template);
   } catch (error) {
-    console.error("Error fetching reasoning template:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch reasoning template",
-    });
+    return sendError(res, error, "Failed to fetch reasoning template");
   }
 });
 

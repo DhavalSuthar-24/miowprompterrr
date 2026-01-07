@@ -21,6 +21,13 @@ export const config = {
     callbackUrl: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/auth/google/callback",
   },
 
+  // Cloudinary
+  cloudinary: {
+    cloudName: process.env.Cloudname || "",
+    apiKey: (process.env.Cloudinary_API_key || "").trim(),
+    apiSecret: (process.env.Cloudinary__API_secret || "").trim(),
+  },
+
   // Bcrypt
   bcryptSaltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10),
 

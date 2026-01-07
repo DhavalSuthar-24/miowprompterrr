@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendNotFound } from "../../utils";
 
 const router = Router();
 
@@ -24,18 +25,9 @@ router.get("/", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: presets,
-      count: presets.length,
-    });
+    return sendSuccess(res, presets);
   } catch (error) {
-    console.error("Error fetching presets:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch preset modes",
-    });
+    return sendError(res, error, "Failed to fetch preset modes");
   }
 });
 
@@ -58,25 +50,12 @@ router.get("/:idOrSlug", async (req: Request, res: Response) => {
     }
 
     if (!preset) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Preset mode not found",
-      });
-      return;
+      return sendNotFound(res, "Preset mode");
     }
 
-    res.json({
-      success: true,
-      data: preset,
-    });
+    return sendSuccess(res, preset);
   } catch (error) {
-    console.error("Error fetching preset:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch preset mode",
-    });
+    return sendError(res, error, "Failed to fetch preset mode");
   }
 });
 

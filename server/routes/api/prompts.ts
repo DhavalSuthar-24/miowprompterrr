@@ -2,16 +2,19 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
 import { authenticate, optionalAuthenticate } from "../../middleware/auth";
+import {
+  sendSuccess,
+  sendError,
+  sendPaginated,
+  sendNotFound,
+  sendForbidden,
+  sendValidationError,
+  validateRequired,
+  validateMinLength,
+} from "../../utils";
+import { AuthRequest } from "../../types/request";
 
 const router = Router();
-
-// Type for authenticated request
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
 
 /**
  * GET /api/prompts
@@ -201,23 +204,13 @@ router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
       isSaved: savedPrompts.has(prompt.id),
     }));
 
-    res.json({
-      success: true,
-      data: formattedPrompts,
-      pagination: {
-        page: Number(page),
-        limit: take,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / take),
-      },
+    return sendPaginated(res, formattedPrompts, {
+      page: Number(page),
+      limit: take,
+      total: totalCount,
     });
   } catch (error) {
-    console.error("Error fetching prompts:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch prompts",
-    });
+    return sendError(res, error, "Failed to fetch prompts");
   }
 });
 
@@ -278,22 +271,12 @@ router.get("/:id", optionalAuthenticate, async (req: Request, res: Response) => 
     });
 
     if (!prompt) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Prompt not found",
-      });
-      return;
+      return sendNotFound(res, "Prompt");
     }
 
     // Check if user can view (published or own)
     if (prompt.status !== "PUBLISHED" && prompt.authorId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You do not have access to this prompt",
-      });
-      return;
+      return sendForbidden(res, "You do not have access to this prompt");
     }
 
     // Increment view count (fire and forget)
@@ -323,39 +306,33 @@ router.get("/:id", optionalAuthenticate, async (req: Request, res: Response) => 
       isSaved = !!saved;
     }
 
-    res.json({
-      success: true,
-      data: {
-        id: prompt.id,
-        title: prompt.title,
-        content: prompt.content,
-        upvotes: prompt.upvotes,
-        downvotes: prompt.downvotes,
-        score: prompt.score,
-        viewCount: prompt.viewCount + 1,
-        copyCount: prompt.copyCount,
-        commentCount: prompt._count.comments,
-        saveCount: prompt._count.savedBy,
-        isFeatured: prompt.isFeatured,
-        status: prompt.status,
-        createdAt: prompt.createdAt,
-        updatedAt: prompt.updatedAt,
-        author: prompt.author,
-        personality: prompt.personality,
-        presetMode: prompt.presetMode,
-        tags: prompt.tags.map((pt) => pt.tag),
-        userVote,
-        isSaved,
-        isOwner: prompt.authorId === userId,
-      },
-    });
+    const data = {
+      id: prompt.id,
+      title: prompt.title,
+      content: prompt.content,
+      upvotes: prompt.upvotes,
+      downvotes: prompt.downvotes,
+      score: prompt.score,
+      viewCount: prompt.viewCount + 1,
+      copyCount: prompt.copyCount,
+      commentCount: prompt._count.comments,
+      saveCount: prompt._count.savedBy,
+      isFeatured: prompt.isFeatured,
+      status: prompt.status,
+      createdAt: prompt.createdAt,
+      updatedAt: prompt.updatedAt,
+      author: prompt.author,
+      personality: prompt.personality,
+      presetMode: prompt.presetMode,
+      tags: prompt.tags.map((pt) => pt.tag),
+      userVote,
+      isSaved,
+      isOwner: prompt.authorId === userId,
+    };
+
+    return sendSuccess(res, data);
   } catch (error) {
-    console.error("Error fetching prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch prompt",
-    });
+    return sendError(res, error, "Failed to fetch prompt");
   }
 });
 
@@ -369,33 +346,16 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
     const { title, content, personalityId, presetModeId, tagIds, status = "PUBLISHED" } = req.body;
 
     // Validation
-    if (!title || typeof title !== "string" || title.trim().length < 5) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Title must be at least 5 characters",
-      });
-      return;
-    }
+    const titleError = validateMinLength(title, 5, "Title");
+    if (titleError) return sendValidationError(res, titleError);
 
-    if (!content || typeof content !== "string" || content.trim().length < 20) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Content must be at least 20 characters",
-      });
-      return;
-    }
+    const contentError = validateMinLength(content, 20, "Content");
+    if (contentError) return sendValidationError(res, contentError);
 
     // Validate status
     const validStatuses = ["DRAFT", "PUBLISHED"];
     if (!validStatuses.includes(status)) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Status must be DRAFT or PUBLISHED",
-      });
-      return;
+      return sendValidationError(res, "Status must be DRAFT or PUBLISHED");
     }
 
     // Create prompt
@@ -441,18 +401,9 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
       })
       .catch(() => {});
 
-    res.status(201).json({
-      success: true,
-      data: prompt,
-      message: "Prompt created successfully",
-    });
+    return sendSuccess(res, prompt, "Prompt created successfully", 201);
   } catch (error) {
-    console.error("Error creating prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to create prompt",
-    });
+    return sendError(res, error, "Failed to create prompt");
   }
 });
 
@@ -473,21 +424,11 @@ router.patch("/:id", authenticate, async (req: Request, res: Response) => {
     });
 
     if (!existing) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Prompt not found",
-      });
-      return;
+      return sendNotFound(res, "Prompt");
     }
 
     if (existing.authorId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You can only edit your own prompts",
-      });
-      return;
+      return sendForbidden(res, "You can only edit your own prompts");
     }
 
     // Build update data
@@ -546,18 +487,9 @@ router.patch("/:id", authenticate, async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
-      success: true,
-      data: prompt,
-      message: "Prompt updated successfully",
-    });
+    return sendSuccess(res, prompt, "Prompt updated successfully");
   } catch (error) {
-    console.error("Error updating prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to update prompt",
-    });
+    return sendError(res, error, "Failed to update prompt");
   }
 });
 
@@ -577,21 +509,11 @@ router.delete("/:id", authenticate, async (req: Request, res: Response) => {
     });
 
     if (!existing) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Prompt not found",
-      });
-      return;
+      return sendNotFound(res, "Prompt");
     }
 
     if (existing.authorId !== userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You can only delete your own prompts",
-      });
-      return;
+      return sendForbidden(res, "You can only delete your own prompts");
     }
 
     // Soft delete (change status)
@@ -608,17 +530,9 @@ router.delete("/:id", authenticate, async (req: Request, res: Response) => {
       })
       .catch(() => {});
 
-    res.json({
-      success: true,
-      message: "Prompt deleted successfully",
-    });
+    return sendSuccess(res, null, "Prompt deleted successfully");
   } catch (error) {
-    console.error("Error deleting prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to delete prompt",
-    });
+    return sendError(res, error, "Failed to delete prompt");
   }
 });
 
@@ -636,17 +550,9 @@ router.post("/:id/copy", async (req: Request, res: Response) => {
       select: { copyCount: true },
     });
 
-    res.json({
-      success: true,
-      data: { copyCount: prompt.copyCount },
-    });
+    return sendSuccess(res, { copyCount: prompt.copyCount });
   } catch (error) {
-    console.error("Error incrementing copy count:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to record copy",
-    });
+    return sendError(res, error, "Failed to record copy");
   }
 });
 
@@ -675,11 +581,7 @@ router.post("/:id/save", authenticate, async (req: Request, res: Response) => {
         where: { id: existing.id },
       });
 
-      res.json({
-        success: true,
-        data: { saved: false },
-        message: "Prompt unsaved",
-      });
+      return sendSuccess(res, { saved: false }, "Prompt unsaved");
     } else {
       // Save
       await prisma.savedPrompt.create({
@@ -689,19 +591,10 @@ router.post("/:id/save", authenticate, async (req: Request, res: Response) => {
         },
       });
 
-      res.json({
-        success: true,
-        data: { saved: true },
-        message: "Prompt saved",
-      });
+      return sendSuccess(res, { saved: true }, "Prompt saved");
     }
   } catch (error) {
-    console.error("Error saving prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to save prompt",
-    });
+    return sendError(res, error, "Failed to save prompt");
   }
 });
 

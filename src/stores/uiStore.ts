@@ -27,6 +27,10 @@ interface UIState {
   // Notifications
   notifications: Notification[];
 
+  // Loading
+  globalLoading: boolean;
+  setGlobalLoading: (loading: boolean) => void;
+
   // Actions - Sidebar
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -44,11 +48,15 @@ interface UIState {
 
 export const useUIStore = create<UIState>()((set) => ({
   // Initial state
+  globalLoading: false,
   sidebarOpen: true,
   sidebarCollapsed: false,
   activeModal: null,
   modalData: {},
   notifications: [],
+
+  // Loading
+  setGlobalLoading: (globalLoading) => set({ globalLoading }),
 
   // Sidebar actions
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),

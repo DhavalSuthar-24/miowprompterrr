@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendNotFound } from "../../utils";
 
 const router = Router();
 
@@ -28,18 +29,9 @@ router.get("/", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: tiers,
-      count: tiers.length,
-    });
+    return sendSuccess(res, tiers);
   } catch (error) {
-    console.error("Error fetching tiers:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch tiers",
-    });
+    return sendError(res, error, "Failed to fetch tiers");
   }
 });
 
@@ -74,25 +66,12 @@ router.get("/:idOrSlug", async (req: Request, res: Response) => {
     }
 
     if (!tier) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Tier not found",
-      });
-      return;
+      return sendNotFound(res, "Tier");
     }
 
-    res.json({
-      success: true,
-      data: tier,
-    });
+    return sendSuccess(res, tier);
   } catch (error) {
-    console.error("Error fetching tier:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch tier",
-    });
+    return sendError(res, error, "Failed to fetch tier");
   }
 });
 
@@ -138,17 +117,9 @@ router.get("/techniques/all", async (_req: Request, res: Response) => {
       {} as Record<string, { tier: typeof techniques[0]["tier"]; techniques: Array<{ id: string; slug: string; label: string; description: string }> }>
     );
 
-    res.json({
-      success: true,
-      data: grouped,
-    });
+    return sendSuccess(res, grouped);
   } catch (error) {
-    console.error("Error fetching techniques:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch techniques",
-    });
+    return sendError(res, error, "Failed to fetch techniques");
   }
 });
 

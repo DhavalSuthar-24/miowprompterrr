@@ -2,12 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../db";
 
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
+
 
 /**
  * Middleware to require admin role

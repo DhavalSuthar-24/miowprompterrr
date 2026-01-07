@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { CommunityNav } from "./CommunityNav";
 import { Sidebar } from "./Sidebar";
+import { Breadcrumbs } from "./Breadcrumbs";
 
 interface CommunityLayoutProps {
   children: ReactNode;
@@ -55,6 +56,9 @@ export function CommunityLayout({
             ${showSidebar ? "lg:ml-0" : ""}
           `}
         >
+          <div className="mb-4">
+            <Breadcrumbs />
+          </div>
           {children}
         </main>
       </div>

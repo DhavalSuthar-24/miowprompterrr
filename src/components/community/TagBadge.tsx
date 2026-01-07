@@ -8,7 +8,10 @@ interface TagBadgeProps {
   size?: "sm" | "md" | "lg";
   onClick?: (slug: string) => void;
   showCount?: boolean;
+  onRemove?: () => void;
 }
+
+import { X } from "lucide-react";
 
 export function TagBadge({
   name,
@@ -17,6 +20,7 @@ export function TagBadge({
   count,
   size = "sm",
   onClick,
+  onRemove,
   showCount = false,
 }: TagBadgeProps) {
   const sizeClasses = {
@@ -26,7 +30,10 @@ export function TagBadge({
   };
 
   const handleClick = () => {
-    onClick?.(slug);
+    // Only trigger onClick if not clicking remove
+    if (onClick) {
+      onClick(slug);
+    }
   };
 
   // Generate color based on tag name if no color provided
@@ -67,10 +74,24 @@ export function TagBadge({
         cursor-pointer
       `}
     >
-      <span>#</span>
-      <span>{name}</span>
-      {showCount && count !== undefined && (
-        <span className="ml-0.5 opacity-60">({count})</span>
+      <span className="flex items-center gap-1">
+        <span>#</span>
+        <span>{name}</span>
+        {showCount && count !== undefined && (
+          <span className="ml-0.5 opacity-60">({count})</span>
+        )}
+      </span>
+      {onRemove && (
+        <span
+          role="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="ml-1 hover:text-red-400 p-0.5 rounded-full hover:bg-red-500/10 transition-colors"
+        >
+          <X size={12} />
+        </span>
       )}
     </button>
   );

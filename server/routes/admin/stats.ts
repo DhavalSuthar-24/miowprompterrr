@@ -10,12 +10,6 @@ const router = Router();
 router.use(authenticate);
 router.use(requireAdmin);
 
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
 
 // ============================================================================
 // DASHBOARD STATS

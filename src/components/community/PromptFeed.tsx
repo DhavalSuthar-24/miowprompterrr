@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { PromptCard } from "./PromptCard";
+import { PromptCardSkeleton } from "../ui/skeletons";
 import { FeedFilters } from "./FeedFilters";
 import { useInfinitePrompts } from "../../hooks";
 import type { Prompt } from "../../lib/schemas";
@@ -106,8 +107,10 @@ export function PromptFeed({
 
       {/* Loading State */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <PromptCardSkeleton key={i} />
+          ))}
         </div>
       ) : prompts.length === 0 ? (
         <div className="text-center py-12">

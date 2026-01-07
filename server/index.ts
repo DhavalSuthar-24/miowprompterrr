@@ -2,14 +2,17 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 import { config } from "./config";
 import { authRoutes, onboardingRoutes, googleRoutes, apiRoutes, adminRoutes } from "./routes";
+import { globalLimiter, configureSecurity } from "./middleware/security";
 
 const app = express();
 
 // Trust proxy for rate limiting behind reverse proxy
 app.set("trust proxy", 1);
+
+// Configure standard security middleware (Helmet, XSS, HPP)
+configureSecurity(app);
 
 // CORS configuration
 app.use(
@@ -28,33 +31,8 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookieParser());
 
-// Rate limiting for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per window
-  message: {
-    success: false,
-    error: "Too many requests",
-    message: "Too many authentication attempts. Please try again later.",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// General rate limiting
-const generalLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 100, // 100 requests per minute
-  message: {
-    success: false,
-    error: "Too many requests",
-    message: "Rate limit exceeded. Please slow down.",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(generalLimiter);
+// Apply global rate limiting
+app.use(globalLimiter);
 
 // Health check
 app.get("/health", (_req: Request, res: Response) => {
@@ -66,7 +44,7 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 // API Routes
-app.use("/auth", authLimiter, authRoutes);
+app.use("/auth", authRoutes);
 app.use("/auth", googleRoutes); // Google OAuth (separate from rate limited auth)
 app.use("/onboarding", onboardingRoutes);
 app.use("/api", apiRoutes); // Configuration and community API
@@ -94,35 +72,38 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 // Start server
-const server = app.listen(config.port, () => {
-  console.log(`
-🚀 MiowNation Server
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📍 Server running on http://localhost:${config.port}
-🔐 Auth endpoints: /auth/*
-🔵 Google OAuth: /auth/google
-📋 Onboarding: /onboarding/*
-🌐 API endpoints: /api/*
-❤️  Health check: /health
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `);
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully...");
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
+// Start server if not in test mode
+if (process.env.NODE_ENV !== "test") {
+  const server = app.listen(config.port, () => {
+    console.log(`
+  🚀 MiowNation Server
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📍 Server running on http://localhost:${config.port}
+  🔐 Auth endpoints: /auth/*
+  🔵 Google OAuth: /auth/google
+  📋 Onboarding: /onboarding/*
+  🌐 API endpoints: /api/*
+  ❤️  Health check: /health
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
   });
-});
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received. Shutting down gracefully...");
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
+  // Graceful shutdown
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM received. Shutting down gracefully...");
+    server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+    });
   });
-});
+
+  process.on("SIGINT", () => {
+    console.log("SIGINT received. Shutting down gracefully...");
+    server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+    });
+  });
+}
 
 export default app;

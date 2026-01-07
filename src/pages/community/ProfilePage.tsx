@@ -6,35 +6,37 @@ import { useUserProfile, useUserPrompts, useSavedPrompts } from "../../hooks";
 import { useAuth } from "../../contexts";
 import type { Prompt } from "../../lib/schemas";
 
-interface ProfilePageProps {
-  username: string;
-  onNavigate?: (path: string) => void;
-}
+import { useNavigate, useParams } from "react-router-dom";
 
-export function ProfilePage({ username, onNavigate }: ProfilePageProps) {
+export function ProfilePage() {
+  const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
+  
+  // Safe default for username to avoid TS errors
+  const safeUsername = username || "";
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"prompts" | "saved" | "comments">("prompts");
   
-  const { data: profileData, isLoading: profileLoading } = useUserProfile(username);
-  const { data: userPromptsData, isLoading: promptsLoading } = useUserPrompts(username);
+  const { data: profileData, isLoading: profileLoading } = useUserProfile(safeUsername);
+  const { data: userPromptsData, isLoading: promptsLoading } = useUserPrompts(safeUsername);
   const { data: savedData, isLoading: savedLoading } = useSavedPrompts();
 
   const profile = profileData?.user;
   const userPrompts = userPromptsData?.prompts;
   const savedPrompts = savedData?.data;
 
-  const isOwnProfile = currentUser?.username === username;
+  const isOwnProfile = currentUser?.username === safeUsername;
 
   const handlePromptClick = (id: string) => {
-    onNavigate?.(`/prompts/${id}`);
+    navigate(`/prompts/${id}`);
   };
 
   const handleTagClick = (slug: string) => {
-    onNavigate?.(`/?tag=${slug}`);
+    navigate(`/?tag=${slug}`);
   };
 
   const handleAuthorClick = (authorUsername: string) => {
-    onNavigate?.(`/u/${authorUsername}`);
+    navigate(`/u/${authorUsername}`);
   };
 
   const formatDate = (dateStr: string) => {
@@ -98,7 +100,7 @@ export function ProfilePage({ username, onNavigate }: ProfilePageProps) {
                   </h1>
                   {isOwnProfile && (
                     <button
-                      onClick={() => onNavigate?.("/settings/profile")}
+                      onClick={() => navigate("/settings/profile")}
                       className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition-colors"
                     >
                       <Edit className="w-4 h-4" />
@@ -110,7 +112,7 @@ export function ProfilePage({ username, onNavigate }: ProfilePageProps) {
 
               {isOwnProfile && (
                 <button
-                  onClick={() => onNavigate?.("/settings")}
+                  onClick={() => navigate("/settings")}
                   className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors"
                 >
                   <Settings className="w-4 h-4" />

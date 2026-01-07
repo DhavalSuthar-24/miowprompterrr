@@ -43,4 +43,8 @@ router.use("/feed", usersRoutes);
 // Vote endpoints (nested under prompts and comments)
 router.use("/", votesRoutes);
 
+// Upload endpoint
+import uploadRoutes from "./upload";
+router.use("/upload", uploadRoutes);
+
 export default router;

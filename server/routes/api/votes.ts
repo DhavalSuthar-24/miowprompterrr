@@ -2,15 +2,16 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
 import { authenticate } from "../../middleware/auth";
+import {
+  sendSuccess,
+  sendError,
+  sendNotFound,
+  sendForbidden,
+  sendValidationError,
+} from "../../utils";
+import { AuthRequest } from "../../types/request";
 
 const router = Router();
-
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    permissions: string[];
-  };
-}
 
 /**
  * POST /api/prompts/:promptId/vote
@@ -24,12 +25,7 @@ router.post("/prompts/:promptId/vote", authenticate, async (req: Request, res: R
 
     // Validate vote value
     if (value !== 1 && value !== -1) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Vote value must be 1 (upvote) or -1 (downvote)",
-      });
-      return;
+      return sendValidationError(res, "Vote value must be 1 (upvote) or -1 (downvote)");
     }
 
     // Check prompt exists
@@ -39,22 +35,12 @@ router.post("/prompts/:promptId/vote", authenticate, async (req: Request, res: R
     });
 
     if (!prompt) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Prompt not found",
-      });
-      return;
+      return sendNotFound(res, "Prompt");
     }
 
     // Prevent self-voting
     if (prompt.authorId === userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You cannot vote on your own prompt",
-      });
-      return;
+      return sendForbidden(res, "You cannot vote on your own prompt");
     }
 
     // Check for existing vote
@@ -145,23 +131,16 @@ router.post("/prompts/:promptId/vote", authenticate, async (req: Request, res: R
         .catch(() => {});
     }
 
-    res.json({
-      success: true,
-      data: {
-        userVote: newVote,
-        upvotes: updatedPrompt.upvotes,
-        downvotes: updatedPrompt.downvotes,
-        score: updatedPrompt.score,
-      },
-      message: newVote === null ? "Vote removed" : newVote === 1 ? "Upvoted" : "Downvoted",
-    });
+    const message = newVote === null ? "Vote removed" : newVote === 1 ? "Upvoted" : "Downvoted";
+    return sendSuccess(res, {
+      userVote: newVote,
+      upvotes: updatedPrompt.upvotes,
+      downvotes: updatedPrompt.downvotes,
+      score: updatedPrompt.score,
+    }, message);
+
   } catch (error) {
-    console.error("Error voting on prompt:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to vote",
-    });
+    return sendError(res, error, "Failed to vote");
   }
 });
 
@@ -184,12 +163,7 @@ router.delete("/prompts/:promptId/vote", authenticate, async (req: Request, res:
     });
 
     if (!existingVote) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Vote not found",
-      });
-      return;
+      return sendNotFound(res, "Vote");
     }
 
     // Delete vote
@@ -208,23 +182,15 @@ router.delete("/prompts/:promptId/vote", authenticate, async (req: Request, res:
       select: { upvotes: true, downvotes: true, score: true },
     });
 
-    res.json({
-      success: true,
-      data: {
-        userVote: null,
-        upvotes: updatedPrompt.upvotes,
-        downvotes: updatedPrompt.downvotes,
-        score: updatedPrompt.score,
-      },
-      message: "Vote removed",
-    });
+    return sendSuccess(res, {
+      userVote: null,
+      upvotes: updatedPrompt.upvotes,
+      downvotes: updatedPrompt.downvotes,
+      score: updatedPrompt.score,
+    }, "Vote removed");
+
   } catch (error) {
-    console.error("Error removing vote:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to remove vote",
-    });
+    return sendError(res, error, "Failed to remove vote");
   }
 });
 
@@ -239,12 +205,7 @@ router.post("/comments/:commentId/vote", authenticate, async (req: Request, res:
     const userId = (req as AuthRequest).user?.userId;
 
     if (value !== 1 && value !== -1) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Vote value must be 1 (upvote) or -1 (downvote)",
-      });
-      return;
+      return sendValidationError(res, "Vote value must be 1 (upvote) or -1 (downvote)");
     }
 
     // Check comment exists
@@ -254,22 +215,12 @@ router.post("/comments/:commentId/vote", authenticate, async (req: Request, res:
     });
 
     if (!comment) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Comment not found",
-      });
-      return;
+      return sendNotFound(res, "Comment");
     }
 
     // Prevent self-voting
     if (comment.authorId === userId) {
-      res.status(403).json({
-        success: false,
-        error: "Forbidden",
-        message: "You cannot vote on your own comment",
-      });
-      return;
+      return sendForbidden(res, "You cannot vote on your own comment");
     }
 
     // Check for existing vote
@@ -327,21 +278,14 @@ router.post("/comments/:commentId/vote", authenticate, async (req: Request, res:
       select: { upvotes: true, score: true },
     });
 
-    res.json({
-      success: true,
-      data: {
-        userVote: newVote,
-        upvotes: updatedComment.upvotes,
-        score: updatedComment.score,
-      },
+    return sendSuccess(res, {
+      userVote: newVote,
+      upvotes: updatedComment.upvotes,
+      score: updatedComment.score,
     });
+
   } catch (error) {
-    console.error("Error voting on comment:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to vote",
-    });
+    return sendError(res, error, "Failed to vote");
   }
 });
 

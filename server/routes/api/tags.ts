@@ -2,6 +2,14 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
 import { authenticate, optionalAuthenticate } from "../../middleware/auth";
+import {
+  sendSuccess,
+  sendError,
+  sendPaginated,
+  sendNotFound,
+  sendValidationError,
+} from "../../utils";
+import { AuthRequest } from "../../types/request";
 
 const router = Router();
 
@@ -33,18 +41,13 @@ router.get("/", async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: tags,
-      count: tags.length,
-    });
+    return sendSuccess(res, tags, undefined, 200);
+    // Note: older format had { success: true, count: number, data: ... }. 
+    // sendSuccess doesn't add 'count' outside. The client might accept just data array. 
+    // If exact compat is needed we could do sendSuccess(res, { tags, count: tags.length }). 
+    // But usually returning the array directly as data is cleaner standard.
   } catch (error) {
-    console.error("Error fetching tags:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch tags",
-    });
+    return sendError(res, error, "Failed to fetch tags");
   }
 });
 
@@ -66,17 +69,9 @@ router.get("/popular", async (_req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: tags,
-    });
+    return sendSuccess(res, tags);
   } catch (error) {
-    console.error("Error fetching popular tags:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch popular tags",
-    });
+    return sendError(res, error, "Failed to fetch popular tags");
   }
 });
 
@@ -89,7 +84,7 @@ router.get("/:slug", optionalAuthenticate, async (req: Request, res: Response) =
     const { slug } = req.params;
     const { page = 1, limit = 20, sortBy = "recent" } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
-    const userId = (req as any).user?.userId;
+    const userId = (req as AuthRequest).user?.userId;
 
     // Get tag
     const tag = await prisma.tag.findUnique({
@@ -97,12 +92,7 @@ router.get("/:slug", optionalAuthenticate, async (req: Request, res: Response) =
     });
 
     if (!tag) {
-      res.status(404).json({
-        success: false,
-        error: "Not found",
-        message: "Tag not found",
-      });
-      return;
+      return sendNotFound(res, "Tag");
     }
 
     // Order prompts
@@ -203,26 +193,20 @@ router.get("/:slug", optionalAuthenticate, async (req: Request, res: Response) =
       userVote: userVotes[prompt.id] || null,
     }));
 
-    res.json({
-      success: true,
-      data: {
+    return sendPaginated(
+      res,
+      {
         tag,
         prompts: formattedPrompts,
       },
-      pagination: {
+      {
         page: Number(page),
         limit: Number(limit),
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
-      },
-    });
+      }
+    );
   } catch (error) {
-    console.error("Error fetching tag:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch tag",
-    });
+    return sendError(res, error, "Failed to fetch tag");
   }
 });
 
@@ -235,12 +219,7 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
     const { name, color } = req.body;
 
     if (!name || typeof name !== "string" || name.trim().length < 2) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Tag name must be at least 2 characters",
-      });
-      return;
+      return sendValidationError(res, "Tag name must be at least 2 characters");
     }
 
     // Generate slug from name
@@ -258,12 +237,7 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
     });
 
     if (existing) {
-      res.status(409).json({
-        success: false,
-        error: "Conflict",
-        message: "A tag with this name already exists",
-      });
-      return;
+      return sendError(res, null, "A tag with this name already exists", 409);
     }
 
     const tag = await prisma.tag.create({
@@ -274,18 +248,9 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({
-      success: true,
-      data: tag,
-      message: "Tag created successfully",
-    });
+    return sendSuccess(res, tag, "Tag created successfully", 201);
   } catch (error) {
-    console.error("Error creating tag:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to create tag",
-    });
+    return sendError(res, error, "Failed to create tag");
   }
 });
 
@@ -298,8 +263,7 @@ router.get("/search/:query", async (req: Request, res: Response) => {
     const { query } = req.params;
 
     if (!query || query.length < 1) {
-      res.json({ success: true, data: [] });
-      return;
+      return sendSuccess(res, []);
     }
 
     const tags = await prisma.tag.findMany({
@@ -320,17 +284,9 @@ router.get("/search/:query", async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: tags,
-    });
+    return sendSuccess(res, tags);
   } catch (error) {
-    console.error("Error searching tags:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to search tags",
-    });
+    return sendError(res, error, "Failed to search tags");
   }
 });
 

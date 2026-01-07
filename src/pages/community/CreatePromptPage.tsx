@@ -1,16 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, X, Loader2 } from "lucide-react";
 import { CommunityLayout } from "../../components/layout";
 import { TagBadge } from "../../components/community";
+import { MarkdownEditor } from "../../components/common";
 import { useCreatePrompt, usePersonalities, useTags } from "../../hooks";
 import { useAuth } from "../../contexts";
 
-interface CreatePromptPageProps {
-  onBack?: () => void;
-  onSuccess?: (promptId: string) => void;
-}
-
-export function CreatePromptPage({ onBack, onSuccess }: CreatePromptPageProps) {
+export function CreatePromptPage() {
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const createMutation = useCreatePrompt();
   const { data: personalities } = usePersonalities();
@@ -51,43 +49,83 @@ export function CreatePromptPage({ onBack, onSuccess }: CreatePromptPageProps) {
       title: title.trim(),
       content: content.trim(),
       personalityId: personalityId || undefined,
-      tagIds: selectedTags.length > 0 ? selectedTags : undefined,
+      tagIds: selectedTags,
       status,
     });
 
     if (result?.id) {
-      onSuccess?.(result.id);
+      navigate(`/prompts/${result.id}`);
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <CommunityLayout showSidebar={false}>
-        <div className="max-w-2xl mx-auto text-center py-12">
-          <p className="text-slate-400 mb-4">Please log in to create prompts</p>
-          <a
-            href="/login"
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors"
-          >
-            Log In
-          </a>
-        </div>
-      </CommunityLayout>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <h2 className="text-2xl font-bold text-white mb-2">Sign in to Create</h2>
+        <p className="text-slate-400 mb-6 max-w-md">
+          Join the community to share your prompts, get feedback, and build your portfolio.
+        </p>
+        <button
+          onClick={() => navigate(-1)}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+        >
+          Sign In / Sign Up
+        </button>
+      </div>
     );
   }
 
   return (
-    <CommunityLayout showSidebar={false}>
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+    <CommunityLayout>
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6 flex items-center justify-between">
           <button
-            onClick={onBack}
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
+            Back
           </button>
-          <h1 className="text-2xl font-bold text-slate-100">Create Prompt</h1>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
+              <button
+                onClick={() => setStatus("DRAFT")}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  status === "DRAFT"
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Draft
+              </button>
+              <button
+                onClick={() => setStatus("PUBLISHED")}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  status === "PUBLISHED"
+                    ? "bg-green-600/20 text-green-400"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Publish
+              </button>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || !title || !content}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Prompt"
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Form */}
@@ -113,12 +151,11 @@ export function CreatePromptPage({ onBack, onSuccess }: CreatePromptPageProps) {
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Prompt Content *
             </label>
-            <textarea
+            <MarkdownEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               placeholder="Write your prompt here. You can use variables like {{variable}} for dynamic content."
-              rows={12}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono text-sm resize-none transition-colors"
+              minHeight="min-h-[300px]"
             />
             <p className="text-xs text-slate-500 mt-1">{content.length} characters</p>
           </div>
@@ -243,7 +280,7 @@ export function CreatePromptPage({ onBack, onSuccess }: CreatePromptPageProps) {
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={onBack}
+              onClick={() => navigate(-1)}
               className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"
             >
               Cancel

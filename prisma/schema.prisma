@@ -8,35 +8,35 @@ datasource db {
 }
 
 model User {
-  id                    String          @id @default(uuid())
-  name                  String
-  email                 String          @unique
-  password              String?         // Optional for OAuth users
-  dob                   DateTime?
-  username              String          @unique
-  emailVerified         Boolean         @default(false)
-  onboardingCompleted   Boolean         @default(false)
-  image                 String?         // Profile image from OAuth
-  roles                 UserRole[]
-  refreshTokens         RefreshToken[]
-  accounts              Account[]       // OAuth accounts
+  id                   String         @id @default(uuid())
+  name                 String
+  email                String         @unique
+  password             String? // Optional for OAuth users
+  dob                  DateTime?
+  username             String         @unique
+  emailVerified        Boolean        @default(false)
+  onboardingCompleted  Boolean        @default(false)
+  image                String? // Profile image from OAuth
+  roles                UserRole[]
+  refreshTokens        RefreshToken[]
+  accounts             Account[] // OAuth accounts
   // Community features
-  createdPersonalities  Personality[]   @relation("PersonalityCreator")
-  prompts               Prompt[]
-  votes                 Vote[]
-  comments              Comment[]
-  savedPrompts          SavedPrompt[]
-  stats                 UserStats?
-  badges                UserBadge[]
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  createdPersonalities Personality[]  @relation("PersonalityCreator")
+  prompts              Prompt[]
+  votes                Vote[]
+  comments             Comment[]
+  savedPrompts         SavedPrompt[]
+  stats                UserStats?
+  badges               UserBadge[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 }
 
 model Account {
   id                String  @id @default(uuid())
   userId            String
-  type              String  // "oauth" | "credentials"
-  provider          String  // "google" | "github" | etc.
+  type              String // "oauth" | "credentials"
+  provider          String // "google" | "github" | etc.
   providerAccountId String
   access_token      String?
   refresh_token     String?
@@ -129,6 +129,9 @@ model Personality {
   prompts           Prompt[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@index([sortOrder, isActive])
+  @@index([slug])
 }
 
 model PresetMode {
@@ -136,7 +139,7 @@ model PresetMode {
   slug        String   @unique
   name        String
   description String   @db.Text
-  config      Json     // Stores full config object
+  config      Json // Stores full config object
   isActive    Boolean  @default(true)
   isDefault   Boolean  @default(false)
   sortOrder   Int      @default(0)
@@ -211,16 +214,17 @@ model QuickTemplate {
 // Generic select options (tones, focus, constraints, interest modes, perspectives)
 model SelectOption {
   id        String   @id @default(uuid())
-  type      String   // 'tone' | 'focus' | 'constraint' | 'interest' | 'perspective'
+  type      String // 'tone' | 'focus' | 'constraint' | 'interest' | 'perspective'
   value     String
   label     String
-  prefix    String?  // For interest modes
+  prefix    String? // For interest modes
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([type, value])
+  @@index([type, isActive])
 }
 
 // ============================================================================
@@ -236,33 +240,38 @@ enum PromptStatus {
 }
 
 model Prompt {
-  id            String       @id @default(uuid())
+  id            String        @id @default(uuid())
   title         String
-  content       String       @db.Text
+  content       String        @db.Text
   authorId      String
-  author        User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   personalityId String?
-  personality   Personality? @relation(fields: [personalityId], references: [id])
+  personality   Personality?  @relation(fields: [personalityId], references: [id])
   presetModeId  String?
-  presetMode    PresetMode?  @relation(fields: [presetModeId], references: [id])
+  presetMode    PresetMode?   @relation(fields: [presetModeId], references: [id])
   tags          PromptTag[]
   votes         Vote[]
   comments      Comment[]
   savedBy       SavedPrompt[]
-  upvotes       Int          @default(0)
-  downvotes     Int          @default(0)
-  score         Int          @default(0)
-  viewCount     Int          @default(0)
-  copyCount     Int          @default(0)
-  status        PromptStatus @default(PUBLISHED)
-  isFeatured    Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  upvotes       Int           @default(0)
+  downvotes     Int           @default(0)
+  score         Int           @default(0)
+  viewCount     Int           @default(0)
+  copyCount     Int           @default(0)
+  status        PromptStatus  @default(PUBLISHED)
+  isFeatured    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([createdAt])
+  @@index([score])
+  @@index([authorId])
+  @@index([status])
 }
 
 model Vote {
   id        String   @id @default(uuid())
-  value     Int      // 1 = upvote, -1 = downvote
+  value     Int // 1 = upvote, -1 = downvote
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   promptId  String?
@@ -290,6 +299,10 @@ model Comment {
   score     Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([promptId])
+  @@index([authorId])
+  @@index([parentId])
 }
 
 model Tag {

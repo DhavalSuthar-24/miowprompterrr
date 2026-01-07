@@ -1,6 +1,7 @@
 // @ts-nocheck - Prisma models need migration first
 import { Router, Request, Response } from "express";
 import { prisma } from "../../db";
+import { sendSuccess, sendError, sendValidationError } from "../../utils";
 
 const router = Router();
 
@@ -44,18 +45,9 @@ router.get("/", async (_req: Request, res: Response) => {
       {} as Record<string, Array<{ id: string; value: string; label: string; prefix: string | null }>>
     );
 
-    res.json({
-      success: true,
-      data: grouped,
-      types: Object.keys(grouped),
-    });
+    return sendSuccess(res, grouped);
   } catch (error) {
-    console.error("Error fetching options:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch options",
-    });
+    return sendError(res, error, "Failed to fetch options");
   }
 });
 
@@ -68,12 +60,7 @@ router.get("/:type", async (req: Request, res: Response) => {
     const { type } = req.params;
 
     if (!validTypes.includes(type as OptionType)) {
-      res.status(400).json({
-        success: false,
-        error: "Invalid type",
-        message: `Type must be one of: ${validTypes.join(", ")}`,
-      });
-      return;
+      return sendValidationError(res, `Type must be one of: ${validTypes.join(", ")}`);
     }
 
     const options = await prisma.selectOption.findMany({
@@ -91,19 +78,9 @@ router.get("/:type", async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      success: true,
-      data: options,
-      count: options.length,
-      type,
-    });
+    return sendSuccess(res, options);
   } catch (error) {
-    console.error("Error fetching options by type:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to fetch options",
-    });
+    return sendError(res, error, "Failed to fetch options");
   }
 });
 

@@ -1,28 +1,42 @@
-import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CommunityLayout } from "../../components/layout";
 import { PromptFeed, FeedFilters } from "../../components/community";
 
-interface FeedPageProps {
-  initialSort?: "hot" | "new" | "top" | "rising";
-  initialTag?: string;
-}
+// removed props interface
 
-export function FeedPage({ initialSort = "hot", initialTag }: FeedPageProps) {
-  const [sortBy, setSortBy] = useState<"hot" | "new" | "top" | "rising">(initialSort);
-  const [activeTag, setActiveTag] = useState<string | null>(initialTag || null);
-  const [searchQuery, setSearchQuery] = useState("");
+export function FeedPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const sortBy = (searchParams.get("sort") as "hot" | "new" | "top" | "rising") || "hot";
+  const activeTag = searchParams.get("tag");
+  const searchQuery = searchParams.get("q") || "";
+
+  const setSortBy = (sort: "hot" | "new" | "top" | "rising") => {
+    setSearchParams(prev => {
+      prev.set("sort", sort);
+      return prev;
+    });
+  };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    setSearchParams(prev => {
+      if (query) prev.set("q", query);
+      else prev.delete("q");
+      return prev;
+    });
   };
 
   const handleTagClick = (slug: string) => {
-    setActiveTag(slug || null);
+    setSearchParams(prev => {
+      if (slug) prev.set("tag", slug);
+      else prev.delete("tag");
+      return prev;
+    });
   };
 
   const handleNavigate = (path: string) => {
-    // In a real app, use router navigation
-    window.history.pushState({}, "", path);
+    navigate(path);
   };
 
   const handlePromptClick = (id: string) => {
