@@ -1,0 +1,155 @@
+// @ts-nocheck - Prisma models need migration first
+import { Router, Request, Response } from "express";
+import { prisma } from "../../db";
+
+const router = Router();
+
+/**
+ * GET /api/tiers
+ * Get all active tiers with their techniques
+ */
+router.get("/", async (_req: Request, res: Response) => {
+  try {
+    const tiers = await prisma.tier.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      include: {
+        techniques: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+          select: {
+            id: true,
+            slug: true,
+            label: true,
+            description: true,
+            sortOrder: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: tiers,
+      count: tiers.length,
+    });
+  } catch (error) {
+    console.error("Error fetching tiers:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to fetch tiers",
+    });
+  }
+});
+
+/**
+ * GET /api/tiers/:idOrSlug
+ * Get a single tier with techniques by ID or slug
+ */
+router.get("/:idOrSlug", async (req: Request, res: Response) => {
+  try {
+    const { idOrSlug } = req.params;
+
+    let tier = await prisma.tier.findUnique({
+      where: { slug: idOrSlug },
+      include: {
+        techniques: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+
+    if (!tier) {
+      tier = await prisma.tier.findUnique({
+        where: { id: idOrSlug },
+        include: {
+          techniques: {
+            where: { isActive: true },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      });
+    }
+
+    if (!tier) {
+      res.status(404).json({
+        success: false,
+        error: "Not found",
+        message: "Tier not found",
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: tier,
+    });
+  } catch (error) {
+    console.error("Error fetching tier:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to fetch tier",
+    });
+  }
+});
+
+/**
+ * GET /api/tiers/techniques/all
+ * Get all techniques grouped by tier
+ */
+router.get("/techniques/all", async (_req: Request, res: Response) => {
+  try {
+    const techniques = await prisma.technique.findMany({
+      where: { isActive: true },
+      orderBy: [{ tier: { sortOrder: "asc" } }, { sortOrder: "asc" }],
+      include: {
+        tier: {
+          select: {
+            id: true,
+            slug: true,
+            label: true,
+            color: true,
+          },
+        },
+      },
+    });
+
+    // Group by tier
+    const grouped = techniques.reduce(
+      (acc, technique) => {
+        const tierSlug = technique.tier.slug;
+        if (!acc[tierSlug]) {
+          acc[tierSlug] = {
+            tier: technique.tier,
+            techniques: [],
+          };
+        }
+        acc[tierSlug].techniques.push({
+          id: technique.id,
+          slug: technique.slug,
+          label: technique.label,
+          description: technique.description,
+        });
+        return acc;
+      },
+      {} as Record<string, { tier: typeof techniques[0]["tier"]; techniques: Array<{ id: string; slug: string; label: string; description: string }> }>
+    );
+
+    res.json({
+      success: true,
+      data: grouped,
+    });
+  } catch (error) {
+    console.error("Error fetching techniques:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to fetch techniques",
+    });
+  }
+});
+
+export default router;

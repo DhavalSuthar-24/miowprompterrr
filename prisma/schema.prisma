@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                    String          @id @default(uuid())
+  name                  String
+  email                 String          @unique
+  password              String?         // Optional for OAuth users
+  dob                   DateTime?
+  username              String          @unique
+  emailVerified         Boolean         @default(false)
+  onboardingCompleted   Boolean         @default(false)
+  image                 String?         // Profile image from OAuth
+  roles                 UserRole[]
+  refreshTokens         RefreshToken[]
+  accounts              Account[]       // OAuth accounts
+  // Community features
+  createdPersonalities  Personality[]   @relation("PersonalityCreator")
+  prompts               Prompt[]
+  votes                 Vote[]
+  comments              Comment[]
+  savedPrompts          SavedPrompt[]
+  stats                 UserStats?
+  badges                UserBadge[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String  // "oauth" | "credentials"
+  provider          String  // "google" | "github" | etc.
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  deviceInfo String?
+  createdAt  DateTime @default(now())
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  permissions     String[]
+  rolePermissions RolePermission[]
+  users           UserRole[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleId])
+}
+
+// ============================================================================
+// PHASE 2: CORE CONFIGURATION ENTITIES
+// ============================================================================
+
+model Personality {
+  id                String   @id @default(uuid())
+  slug              String   @unique
+  name              String
+  description       String   @db.Text
+  icon              String
+  age               String?
+  iq                String?
+  traits            String?  @db.Text
+  rules             String?  @db.Text
+  expertise         String?  @db.Text
+  reasoningStyle    String?
+  cognitiveApproach String?
+  thinkingFramework String?
+  strengthAreas     String[]
+  specialAbilities  String[]
+  outputExample     String?  @db.Text
+  isActive          Boolean  @default(true)
+  isDefault         Boolean  @default(false)
+  sortOrder         Int      @default(0)
+  createdById       String?
+  createdBy         User?    @relation("PersonalityCreator", fields: [createdById], references: [id])
+  prompts           Prompt[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model PresetMode {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String   @db.Text
+  config      Json     // Stores full config object
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  prompts     Prompt[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tier {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  label       String
+  color       String
+  description String
+  sortOrder   Int         @default(0)
+  techniques  Technique[]
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Technique {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  label       String
+  description String
+  tierId      String
+  tier        Tier     @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TaskType {
+  id         String   @id @default(uuid())
+  value      String   @unique
+  label      String
+  rolePreset String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ============================================================================
+// PHASE 3: TEMPLATES & OPTIONS
+// ============================================================================
+
+model ReasoningTemplate {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  steps     String[]
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuickTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  template  String   @db.Text
+  category  String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Generic select options (tones, focus, constraints, interest modes, perspectives)
+model SelectOption {
+  id        String   @id @default(uuid())
+  type      String   // 'tone' | 'focus' | 'constraint' | 'interest' | 'perspective'
+  value     String
+  label     String
+  prefix    String?  // For interest modes
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, value])
+}
+
+// ============================================================================
+// PHASE 4: COMMUNITY FEATURES (Reddit-like)
+// ============================================================================
+
+enum PromptStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  FLAGGED
+  DELETED
+}
+
+model Prompt {
+  id            String       @id @default(uuid())
+  title         String
+  content       String       @db.Text
+  authorId      String
+  author        User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  personalityId String?
+  personality   Personality? @relation(fields: [personalityId], references: [id])
+  presetModeId  String?
+  presetMode    PresetMode?  @relation(fields: [presetModeId], references: [id])
+  tags          PromptTag[]
+  votes         Vote[]
+  comments      Comment[]
+  savedBy       SavedPrompt[]
+  upvotes       Int          @default(0)
+  downvotes     Int          @default(0)
+  score         Int          @default(0)
+  viewCount     Int          @default(0)
+  copyCount     Int          @default(0)
+  status        PromptStatus @default(PUBLISHED)
+  isFeatured    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  value     Int      // 1 = upvote, -1 = downvote
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promptId  String?
+  prompt    Prompt?  @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, promptId])
+  @@unique([userId, commentId])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String    @db.Text
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  promptId  String
+  prompt    Prompt    @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  votes     Vote[]
+  upvotes   Int       @default(0)
+  score     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Tag {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  slug      String      @unique
+  color     String?
+  prompts   PromptTag[]
+  useCount  Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model PromptTag {
+  promptId String
+  tagId    String
+  prompt   Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([promptId, tagId])
+}
+
+model SavedPrompt {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promptId  String
+  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, promptId])
+}
+
+// ============================================================================
+// PHASE 16: GAMIFICATION & REPUTATION
+// ============================================================================
+
+model UserStats {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reputation   Int      @default(0)
+  promptCount  Int      @default(0)
+  commentCount Int      @default(0)
+  totalUpvotes Int      @default(0)
+  streak       Int      @default(0)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  name        String
+  description String
+  icon        String
+  criteria    Json
+  userBadges  UserBadge[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model UserBadge {
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+}
