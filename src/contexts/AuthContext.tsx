@@ -10,8 +10,8 @@ interface AuthContextType {
   isLoading: boolean;
 
   // Actions
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
 }
@@ -52,39 +52,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await api.post<AuthResponse>("/auth/login", { email, password });
       
       if (!response.success || !response.data) {
-        toast.error(response.message || "Login failed");
-        return false;
+        // toast.error(response.message || "Login failed"); // Let component handle error display
+        return { success: false, error: response.message || "Login failed" };
       }
 
       storeLogin(response.data.user, response.data.accessToken);
       toast.success("Welcome back!");
-      return true;
+      return { success: true };
     } catch (error) {
-      toast.error("Login failed. Please try again.");
-      return false;
+      // toast.error("Login failed. Please try again.");
+      return { success: false, error: "Login failed. Please try again." };
     }
   }, [storeLogin]);
 
-  const register = useCallback(async (data: RegisterData): Promise<boolean> => {
+  const register = useCallback(async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await api.post<AuthResponse>("/auth/register", data);
       
       if (!response.success || !response.data) {
-        toast.error(response.message || "Registration failed");
-        return false;
+        // toast.error(response.message || "Registration failed");
+        return { success: false, error: response.message || "Registration failed" };
       }
 
       storeLogin(response.data.user, response.data.accessToken);
       toast.success("Account created successfully!");
-      return true;
+      return { success: true };
     } catch (error) {
-      toast.error("Registration failed. Please try again.");
-      return false;
+      // toast.error("Registration failed. Please try again.");
+      return { success: false, error: "Registration failed. Please try again." };
     }
   }, [storeLogin]);
 

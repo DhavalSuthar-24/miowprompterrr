@@ -17,8 +17,34 @@ import { AuthRequest } from "../../types/request";
 const router = Router();
 
 /**
- * GET /api/prompts
- * List prompts with pagination, sorting, and filtering
+ * @swagger
+ * /api/prompts:
+ *   get:
+ *     summary: List prompts with pagination, sorting, and filtering
+ *     tags: [Prompts]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [recent, top, hot, controversial, views]
+ *     responses:
+ *       200:
+ *         description: List of prompts
  */
 router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
   try {
@@ -106,6 +132,7 @@ router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
         viewCount: true,
         copyCount: true,
         isFeatured: true,
+        status: true,
         createdAt: true,
         author: {
           select: {
@@ -195,6 +222,7 @@ router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
       copyCount: prompt.copyCount,
       commentCount: prompt._count.comments,
       isFeatured: prompt.isFeatured,
+      status: prompt.status,
       createdAt: prompt.createdAt,
       author: prompt.author,
       personality: prompt.personality,
@@ -232,6 +260,15 @@ router.get("/:id", optionalAuthenticate, async (req: Request, res: Response) => 
             username: true,
             image: true,
             createdAt: true,
+          },
+        },
+        parent: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: { username: true },
+            },
           },
         },
         personality: {
@@ -328,6 +365,12 @@ router.get("/:id", optionalAuthenticate, async (req: Request, res: Response) => 
       userVote,
       isSaved,
       isOwner: prompt.authorId === userId,
+      parent: prompt.parent ? {
+        id: prompt.parent.id,
+        title: prompt.parent.title,
+        author: prompt.parent.author.username,
+      } : null,
+      remixCount: prompt.remixCount,
     };
 
     return sendSuccess(res, data);
@@ -337,13 +380,39 @@ router.get("/:id", optionalAuthenticate, async (req: Request, res: Response) => 
 });
 
 /**
- * POST /api/prompts
- * Create a new prompt
+ * @swagger
+ * /api/prompts:
+ *   post:
+ *     summary: Create a new prompt
+ *     tags: [Prompts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, content]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 5
+ *               content:
+ *                 type: string
+ *                 minLength: 20
+ *               tagIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Prompt created successfully
  */
 router.post("/", authenticate, async (req: Request, res: Response) => {
   try {
     const userId = (req as AuthRequest).user?.userId;
-    const { title, content, personalityId, presetModeId, tagIds, status = "PUBLISHED" } = req.body;
+    const { title, content, personalityId, presetModeId, tagIds, parentId, status = "PUBLISHED" } = req.body;
 
     // Validation
     const titleError = validateMinLength(title, 5, "Title");
@@ -366,6 +435,7 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
         authorId: userId!,
         personalityId: personalityId || null,
         presetModeId: presetModeId || null,
+        parentId: parentId || null,
         status,
       },
       include: {
@@ -392,6 +462,14 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
       });
     }
 
+    // If remixed, increment parent remixCount (fire and forget)
+    if (parentId) {
+      prisma.prompt.update({
+        where: { id: parentId },
+        data: { remixCount: { increment: 1 } },
+      }).catch(() => {});
+    }
+
     // Update user stats (fire and forget)
     prisma.userStats
       .upsert({
@@ -404,6 +482,48 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
     return sendSuccess(res, prompt, "Prompt created successfully", 201);
   } catch (error) {
     return sendError(res, error, "Failed to create prompt");
+  }
+});
+
+/**
+ * GET /api/prompts/:id/source
+ * Get source data for remixing
+ */
+router.get("/:id/source", optionalAuthenticate, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as AuthRequest).user?.userId;
+
+    const prompt = await prisma.prompt.findUnique({
+      where: { id },
+      include: {
+        tags: { include: { tag: true } },
+        author: { select: { id: true, username: true, image: true } },
+      },
+    });
+
+    if (!prompt) {
+      return sendNotFound(res, "Prompt");
+    }
+
+    // Check visibility
+    if (prompt.status !== "PUBLISHED" && prompt.authorId !== userId) {
+      return sendForbidden(res, "Cannot remix private prompt");
+    }
+    
+    const builderData = {
+       id: prompt.id,
+       title: prompt.title,
+       input: prompt.content,
+       personalityId: prompt.personalityId,
+       presetModeId: prompt.presetModeId,
+       tags: prompt.tags.map(t => t.tag.name),
+       author: prompt.author,
+    };
+
+    return sendSuccess(res, builderData);
+  } catch (error) {
+    return sendError(res, error, "Failed to fetch source");
   }
 });
 

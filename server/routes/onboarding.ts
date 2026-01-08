@@ -8,8 +8,16 @@ const router = Router();
 router.use(authenticate, loadPermissions);
 
 /**
- * GET /onboarding/status
- * Get current onboarding status
+ * @swagger
+ * /onboarding/status:
+ *   get:
+ *     summary: Get current onboarding status
+ *     tags: [Onboarding]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Onboarding status
  */
 router.get("/status", async (req: Request, res: Response) => {
   try {
@@ -70,8 +78,30 @@ router.get("/status", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /onboarding/profile
- * Update user profile during onboarding
+ * @swagger
+ * /onboarding/profile:
+ *   put:
+ *     summary: Update user profile during onboarding
+ *     tags: [Onboarding]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Profile updated
  */
 router.put("/profile", async (req: Request, res: Response) => {
   try {
@@ -196,8 +226,16 @@ router.put("/profile", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /onboarding/complete
- * Mark onboarding as complete
+ * @swagger
+ * /onboarding/complete:
+ *   post:
+ *     summary: Mark onboarding as complete
+ *     tags: [Onboarding]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Onboarding completed
  */
 router.post("/complete", async (req: Request, res: Response) => {
   try {

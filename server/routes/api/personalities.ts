@@ -6,8 +6,14 @@ import { sendSuccess, sendError, sendNotFound } from "../../utils";
 const router = Router();
 
 /**
- * GET /api/personalities
- * Get all active personalities
+ * @swagger
+ * /api/personalities:
+ *   get:
+ *     summary: Get all personalities
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of personalities
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -43,8 +49,20 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/personalities/:idOrSlug
- * Get a single personality by ID or slug
+ * @swagger
+ * /api/personalities/{idOrSlug}:
+ *   get:
+ *     summary: Get single personality
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: idOrSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Personality details
  */
 router.get("/:idOrSlug", async (req: Request, res: Response) => {
   try {

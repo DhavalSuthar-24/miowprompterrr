@@ -1,4 +1,4 @@
-import { Clock, Eye, Copy, Bookmark, Share2, MessageCircle, Sparkles, ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { Clock, Eye, Copy, Bookmark, Share2, MessageCircle, Sparkles, ArrowLeft, Edit, Trash2, GitBranch } from "lucide-react";
 import { CommunityLayout } from "../../components/layout";
 import { VoteButtons, TagBadge, CommentSection, AuthorLink } from "../../components/community";
 import { Skeleton, MarkdownRenderer } from "../../components/common";
@@ -6,7 +6,7 @@ import { SEOHead } from "../../components/seo";
 import { usePrompt, useCopyPrompt, useSavePrompt, useDeletePrompt } from "../../hooks";
 import { useAuth } from "../../contexts";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 
 export function PromptDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +138,15 @@ export function PromptDetailPage() {
                     onClick={handleAuthorClick}
                   />
                   <span>•</span>
+                  {prompt.parent && (
+                    <>
+                      <span className="flex items-center gap-1 text-purple-400">
+                        <GitBranch className="w-3.5 h-3.5" />
+                        Remix of <Link to={`/prompts/${prompt.parent.id}`} className="hover:underline">{prompt.parent.title}</Link>
+                      </span>
+                      <span>•</span>
+                    </>
+                  )}
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
                     {formatDate(prompt.createdAt)}
@@ -201,6 +210,15 @@ export function PromptDetailPage() {
               >
                 <Copy className="w-4 h-4" />
                 Copy Prompt
+              </button>
+
+              <button
+                onClick={() => navigate(`/?source=${promptId}`)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+                title="Remix this prompt in the builder"
+              >
+                <GitBranch className="w-4 h-4" />
+                Remix
               </button>
 
               {isAuthenticated && (

@@ -7,8 +7,14 @@ import { getOrSetCache, CacheKeys } from "../../utils/cache";
 const router = Router();
 
 /**
- * GET /api/config
- * Get all configuration data in a single request (for initial app load)
+ * @swagger
+ * /api/config:
+ *   get:
+ *     summary: Get full application configuration
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: All configuration data
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {

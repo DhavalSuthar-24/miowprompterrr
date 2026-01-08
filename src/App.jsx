@@ -38,21 +38,22 @@ import {
 } from "lucide-react";
 import {
   interestModes,
-  personalities,
+  personalities as defaultPersonalities,
   perspectiveModes,
-  presetModes,
-  reasoningTemplates,
+  presetModes as defaultPresets,
+  reasoningTemplates as defaultReasoningTemplates,
   rolePresets,
-  taskTypes,
+  taskTypes as defaultTaskTypes,
   techniquesByTier,
-  tiers,
+  tiers as defaultTiers,
   tones,
   focusOptions,
   constraintOptions,
-  quickTemplates,
+  quickTemplates as defaultQuickTemplates,
   netFramework,
 } from "./constants";
-import { useMiowNationLogic } from "./hooks";
+import { useMiowNationLogic, useConfig } from "./hooks";
+import { useConfigStore } from "./stores/configStore";
 import {
   Tooltip,
   AnimatedCard,
@@ -112,6 +113,27 @@ const NETFrameworkVisualizer = ({ theme: t }) => {
 
 // Main MiowNation Component (Inner)
 const MiowNationInner = () => {
+  // Config Hook - Fetch Data
+  const { isLoading: isConfigLoading } = useConfig();
+  const store = useConfigStore();
+
+  // Use store data or fallbacks
+  const personalities = store.personalities.length > 0 ? store.personalities : defaultPersonalities;
+  const tiers = store.tiers.length > 0 ? store.tiers : defaultTiers;
+  const presets = store.presets.length > 0 ? store.presets : defaultPresets;
+  const taskTypes = store.taskTypes.length > 0 ? store.taskTypes : defaultTaskTypes;
+  const quickTemplates = store.quickTemplates.length > 0 ? store.quickTemplates : defaultQuickTemplates;
+
+  // Convert array to object for templates lookup if needed, or use default
+  // Actually, UI re-renders will handle it.
+  const reasoningTemplates = useMemo(() => {
+    if (store.reasoningTemplates.length > 0) {
+      return store.reasoningTemplates.reduce((acc, curr) => ({ ...acc, [curr.id]: curr }), {});
+    }
+    return defaultReasoningTemplates;
+  }, [store.reasoningTemplates]);
+
+
   const logic = useMiowNationLogic();
   const { t, theme, toggleTheme, isDark } = useTheme();
   const { isEnabled, openSettings } = useFeatureToggle();
@@ -877,6 +899,32 @@ const MiowNationInner = () => {
                 >
                   {expandedSidebar ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
+
+                {/* Remix Attribution Banner */}
+                {settings.sourceId && settings.remixMeta && (
+                  <div className={`mb-4 p-3 rounded-xl border ${t.border} bg-blue-500/10 border-blue-500/20 flex items-center gap-3 animate-slide-up`}>
+                    <GitBranch className="w-5 h-5 text-blue-500" />
+                    <div className="flex-1">
+                      <div className={`text-sm ${t.text}`}>
+                        <span className={t.textSecondary}>Remixing </span>
+                        <span className="font-semibold">{settings.remixMeta.title}</span>
+                        {settings.remixMeta.author && (
+                          <>
+                            <span className={t.textSecondary}> by </span>
+                            <span className="font-medium text-blue-400">@{settings.remixMeta.author.username}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSettings({ ...settings, sourceId: null, remixMeta: null })}
+                      className={`p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors`}
+                      title="Detach from source"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Input Prompt */}
                 <AnimatedCard className={`${t.card} rounded-xl border ${t.border} p-4`}>

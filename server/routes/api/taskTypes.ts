@@ -6,8 +6,14 @@ import { sendSuccess, sendError, sendNotFound } from "../../utils";
 const router = Router();
 
 /**
- * GET /api/task-types
- * Get all active task types
+ * @swagger
+ * /api/task-types:
+ *   get:
+ *     summary: Get all task types
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of task types
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -30,8 +36,20 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/task-types/:value
- * Get a single task type by value
+ * @swagger
+ * /api/task-types/{value}:
+ *   get:
+ *     summary: Get single task type
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: value
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Task type details
  */
 router.get("/:value", async (req: Request, res: Response) => {
   try {

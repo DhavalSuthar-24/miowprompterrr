@@ -6,8 +6,14 @@ import { sendSuccess, sendError, sendNotFound } from "../../utils";
 const router = Router();
 
 /**
- * GET /api/presets
- * Get all active preset modes
+ * @swagger
+ * /api/presets:
+ *   get:
+ *     summary: Get all preset modes
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of presets
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -32,8 +38,20 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/presets/:idOrSlug
- * Get a single preset by ID or slug
+ * @swagger
+ * /api/presets/{idOrSlug}:
+ *   get:
+ *     summary: Get single preset
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: idOrSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preset details
  */
 router.get("/:idOrSlug", async (req: Request, res: Response) => {
   try {

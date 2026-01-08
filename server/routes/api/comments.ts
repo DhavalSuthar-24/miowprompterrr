@@ -16,8 +16,25 @@ import { AuthRequest } from "../../types/request";
 const router = Router();
 
 /**
- * GET /api/prompts/:promptId/comments
- * Get threaded comments for a prompt
+ * @swagger
+ * /api/comments/prompts/{promptId}/comments:
+ *   get:
+ *     summary: Get threaded comments for a prompt
+ *     tags: [Comments]
+ *     parameters:
+ *       - in: path
+ *         name: promptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [top, new, old]
+ *     responses:
+ *       200:
+ *         description: List of comments
  */
 router.get(
   "/prompts/:promptId/comments",
@@ -158,8 +175,20 @@ router.get(
 );
 
 /**
- * GET /api/comments/:commentId/replies
- * Get all replies for a comment
+ * @swagger
+ * /api/comments/{commentId}/replies:
+ *   get:
+ *     summary: Get all replies for a comment
+ *     tags: [Comments]
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of replies
  */
 router.get("/:commentId/replies", optionalAuthenticate, async (req: Request, res: Response) => {
   try {
@@ -227,8 +256,34 @@ router.get("/:commentId/replies", optionalAuthenticate, async (req: Request, res
 });
 
 /**
- * POST /api/prompts/:promptId/comments
- * Add a comment to a prompt
+ * @swagger
+ * /api/comments/prompts/{promptId}/comments:
+ *   post:
+ *     summary: Add a comment to a prompt
+ *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: promptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Comment added
  */
 router.post(
   "/prompts/:promptId/comments",

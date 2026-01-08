@@ -170,6 +170,12 @@ export const promptSchema = z.object({
   tags: z.array(tagSchema),
   userVote: z.number().nullable(),
   isSaved: z.boolean().optional(),
+  remixCount: z.number().optional(),
+  parent: z.object({
+    id: z.string(),
+    title: z.string(),
+    author: z.string(),
+  }).nullable().optional(),
 });
 
 export const promptDetailSchema = promptSchema.extend({

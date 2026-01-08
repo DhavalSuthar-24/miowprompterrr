@@ -40,7 +40,6 @@ export function AdminPersonalitiesPage() {
 
   const fields = [
     { name: "name", label: "Name", type: "text" as const, required: true },
-    { name: "slug", label: "Slug", type: "text" as const, required: true },
     { name: "description", label: "Description", type: "textarea" as const, required: true },
     { name: "icon", label: "Icon (Emoji)", type: "text" as const, required: true },
     { name: "sortOrder", label: "Sort Order", type: "number" as const, required: true },

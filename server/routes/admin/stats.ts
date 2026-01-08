@@ -16,8 +16,16 @@ router.use(requireAdmin);
 // ============================================================================
 
 /**
- * GET /api/admin/stats
- * Overview statistics for admin dashboard
+ * @swagger
+ * /api/admin/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard stats
  */
 router.get("/stats", async (_req: Request, res: Response) => {
   try {
@@ -85,8 +93,22 @@ router.get("/stats", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/admin/stats/users
- * User growth statistics
+ * @swagger
+ * /api/admin/stats/users:
+ *   get:
+ *     summary: Get user growth statistics
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *     responses:
+ *       200:
+ *         description: User statistics
  */
 router.get("/stats/users", async (req: Request, res: Response) => {
   try {
@@ -134,8 +156,22 @@ router.get("/stats/users", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/admin/stats/prompts
- * Prompt statistics
+ * @swagger
+ * /api/admin/stats/prompts:
+ *   get:
+ *     summary: Get prompt statistics
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *     responses:
+ *       200:
+ *         description: Prompt statistics
  */
 router.get("/stats/prompts", async (req: Request, res: Response) => {
   try {
@@ -203,8 +239,37 @@ router.get("/stats/prompts", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/users
- * List all users with filters
+ * @swagger
+ * /api/admin/users:
+ *   get:
+ *     summary: List all users
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of users
  */
 router.get("/users", async (req: Request, res: Response) => {
   try {
@@ -300,8 +365,22 @@ router.get("/users", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/admin/users/:id
- * Get user details with full stats
+ * @swagger
+ * /api/admin/users/{id}:
+ *   get:
+ *     summary: Get user details
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User details
  */
 router.get("/users/:id", async (req: Request, res: Response) => {
   try {
@@ -402,8 +481,35 @@ router.get("/users/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/users/:id/role
- * Assign or remove role from user
+ * @swagger
+ * /api/admin/users/{id}/role:
+ *   put:
+ *     summary: Manage user roles
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roleName, action]
+ *             properties:
+ *               roleName:
+ *                 type: string
+ *               action:
+ *                 type: string
+ *                 enum: [add, remove]
+ *     responses:
+ *       200:
+ *         description: Role updated
  */
 router.put("/users/:id/role", async (req: Request, res: Response) => {
   try {

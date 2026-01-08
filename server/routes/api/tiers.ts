@@ -6,8 +6,14 @@ import { sendSuccess, sendError, sendNotFound } from "../../utils";
 const router = Router();
 
 /**
- * GET /api/tiers
- * Get all active tiers with their techniques
+ * @swagger
+ * /api/tiers:
+ *   get:
+ *     summary: Get all tiers
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of tiers
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -36,48 +42,14 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/tiers/:idOrSlug
- * Get a single tier with techniques by ID or slug
- */
-router.get("/:idOrSlug", async (req: Request, res: Response) => {
-  try {
-    const { idOrSlug } = req.params;
-
-    let tier = await prisma.tier.findUnique({
-      where: { slug: idOrSlug },
-      include: {
-        techniques: {
-          where: { isActive: true },
-          orderBy: { sortOrder: "asc" },
-        },
-      },
-    });
-
-    if (!tier) {
-      tier = await prisma.tier.findUnique({
-        where: { id: idOrSlug },
-        include: {
-          techniques: {
-            where: { isActive: true },
-            orderBy: { sortOrder: "asc" },
-          },
-        },
-      });
-    }
-
-    if (!tier) {
-      return sendNotFound(res, "Tier");
-    }
-
-    return sendSuccess(res, tier);
-  } catch (error) {
-    return sendError(res, error, "Failed to fetch tier");
-  }
-});
-
-/**
- * GET /api/tiers/techniques/all
- * Get all techniques grouped by tier
+ * @swagger
+ * /api/tiers/techniques/all:
+ *   get:
+ *     summary: Get all techniques
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of techniques
  */
 router.get("/techniques/all", async (_req: Request, res: Response) => {
   try {
@@ -120,6 +92,58 @@ router.get("/techniques/all", async (_req: Request, res: Response) => {
     return sendSuccess(res, grouped);
   } catch (error) {
     return sendError(res, error, "Failed to fetch techniques");
+  }
+});
+
+/**
+ * @swagger
+ * /api/tiers/{idOrSlug}:
+ *   get:
+ *     summary: Get single tier
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: idOrSlug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tier details
+ */
+router.get("/:idOrSlug", async (req: Request, res: Response) => {
+  try {
+    const { idOrSlug } = req.params;
+
+    let tier = await prisma.tier.findUnique({
+      where: { slug: idOrSlug },
+      include: {
+        techniques: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+
+    if (!tier) {
+      tier = await prisma.tier.findUnique({
+        where: { id: idOrSlug },
+        include: {
+          techniques: {
+            where: { isActive: true },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      });
+    }
+
+    if (!tier) {
+      return sendNotFound(res, "Tier");
+    }
+
+    return sendSuccess(res, tier);
+  } catch (error) {
+    return sendError(res, error, "Failed to fetch tier");
   }
 });
 

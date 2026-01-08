@@ -1,5 +1,6 @@
 
-import { MessageCircle, Eye, Copy, Bookmark, Share2, Clock, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, Eye, Copy, Bookmark, Share2, Clock, Sparkles, GitBranch } from "lucide-react";
 import { VoteButtons } from "./VoteButtons";
 import { TagBadge } from "./TagBadge";
 import { AuthorLink } from "./UserAvatar";
@@ -25,6 +26,7 @@ export function PromptCard({
   variant = "default",
 }: PromptCardProps) {
   const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
   const copyMutation = useCopyPrompt();
   const saveMutation = useSavePrompt();
 
@@ -62,6 +64,11 @@ export function PromptCard({
 
   const handleCardClick = () => {
     onPromptClick?.(prompt.id);
+  };
+
+  const handleRemix = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/?source=${prompt.id}`);
   };
 
   const isCompact = variant === "compact";
@@ -201,9 +208,17 @@ export function PromptCard({
 
               <button
                 onClick={handleShare}
-                className="flex items-center gap-1.5 hover:text-blue-400 transition-colors ml-auto"
+                className="flex items-center gap-1.5 hover:text-blue-400 transition-colors"
               >
                 <Share2 className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={handleRemix}
+                className="flex items-center gap-1.5 hover:text-purple-400 transition-colors ml-auto"
+                title="Remix"
+              >
+                <GitBranch className="w-4 h-4" />
               </button>
             </div>
           )}

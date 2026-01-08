@@ -6,8 +6,14 @@ import { sendSuccess, sendError, sendNotFound } from "../../utils";
 const router = Router();
 
 /**
- * GET /api/templates/reasoning
- * Get all active reasoning templates
+ * @swagger
+ * /api/templates/reasoning:
+ *   get:
+ *     summary: Get all reasoning templates
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of reasoning templates
  */
 router.get("/reasoning", async (_req: Request, res: Response) => {
   try {
@@ -30,8 +36,19 @@ router.get("/reasoning", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/templates/quick
- * Get all active quick templates
+ * @swagger
+ * /api/templates/quick:
+ *   get:
+ *     summary: Get all quick templates
+ *     tags: [Config]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of quick templates
  */
 router.get("/quick", async (req: Request, res: Response) => {
   try {
@@ -59,8 +76,14 @@ router.get("/quick", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/templates/quick/categories
- * Get all quick template categories
+ * @swagger
+ * /api/templates/quick/categories:
+ *   get:
+ *     summary: Get all quick template categories
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: List of categories
  */
 router.get("/quick/categories", async (_req: Request, res: Response) => {
   try {
@@ -77,8 +100,20 @@ router.get("/quick/categories", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/templates/reasoning/:slug
- * Get a single reasoning template by slug
+ * @swagger
+ * /api/templates/reasoning/{slug}:
+ *   get:
+ *     summary: Get single reasoning template
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template details
  */
 router.get("/reasoning/:slug", async (req: Request, res: Response) => {
   try {

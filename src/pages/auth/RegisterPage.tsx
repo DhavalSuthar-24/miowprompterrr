@@ -37,7 +37,7 @@ export function RegisterPage() {
 
     setIsLoading(true);
 
-    const success = await register({
+    const { success, error: registerError } = await register({
       name: formData.name,
       email: formData.email,
       username: formData.username,
@@ -47,7 +47,7 @@ export function RegisterPage() {
     if (success) {
       navigate("/");
     } else {
-      setError("Registration failed. Email or username may already exist.");
+      setError(registerError || "Registration failed. Email or username may already exist.");
     }
 
     setIsLoading(false);

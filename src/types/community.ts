@@ -33,8 +33,19 @@ export interface Prompt {
   author: Author;
   personalityId?: string;
   personalityName?: string;
+  personality?: {
+    id: string;
+    name: string;
+    slug: string;
+    icon: string;
+  };
   presetModeId?: string;
   presetModeName?: string;
+  presetMode?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   tags: Tag[];
   upvotes: number;
   downvotes: number;

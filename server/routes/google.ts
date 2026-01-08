@@ -31,8 +31,19 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 /**
- * GET /auth/google
- * Redirect to Google OAuth consent screen with CSRF state
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google OAuth flow
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: redirect
+ *         schema:
+ *           type: string
+ *     responses:
+ *       302:
+ *         description: Redirects to Google
  */
 router.get("/google", (req: Request, res: Response) => {
   if (!config.google.clientId) {
@@ -65,8 +76,25 @@ router.get("/google", (req: Request, res: Response) => {
 });
 
 /**
- * GET /auth/google/callback
- * Handle Google OAuth callback with CSRF validation
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Handle Google OAuth callback
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: state
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend
  */
 router.get("/google/callback", async (req: Request, res: Response) => {
   try {
@@ -353,7 +381,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     // Redirect with only minimal info (not tokens in URL for security)
     const redirectUrl = stateData.redirectTo || "/";
     res.redirect(
-      `${config.frontendUrl}/auth/callback?success=true&onboardingCompleted=${user.onboardingCompleted}&redirect=${encodeURIComponent(redirectUrl)}`
+      `${config.frontendUrl}/auth/google/callback?success=true&onboardingCompleted=${user.onboardingCompleted}&redirect=${encodeURIComponent(redirectUrl)}`
     );
   } catch (error) {
     console.error("Google OAuth error:", error);
@@ -362,8 +390,25 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /auth/google/token
- * Exchange Google ID token for app tokens (for mobile/SPA flows)
+ * @swagger
+ * /auth/google/token:
+ *   post:
+ *     summary: Exchange Google ID token for app tokens
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *               accessToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
  */
 router.post("/google/token", async (req: Request, res: Response) => {
   try {

@@ -8,28 +8,29 @@ datasource db {
 }
 
 model User {
-  id                   String         @id @default(uuid())
+  id                   String               @id @default(uuid())
   name                 String
-  email                String         @unique
+  email                String               @unique
   password             String? // Optional for OAuth users
   dob                  DateTime?
-  username             String         @unique
-  emailVerified        Boolean        @default(false)
-  onboardingCompleted  Boolean        @default(false)
+  username             String               @unique
+  emailVerified        Boolean              @default(false)
+  onboardingCompleted  Boolean              @default(false)
   image                String? // Profile image from OAuth
   roles                UserRole[]
   refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
   accounts             Account[] // OAuth accounts
   // Community features
-  createdPersonalities Personality[]  @relation("PersonalityCreator")
+  createdPersonalities Personality[]        @relation("PersonalityCreator")
   prompts              Prompt[]
   votes                Vote[]
   comments             Comment[]
   savedPrompts         SavedPrompt[]
   stats                UserStats?
   badges               UserBadge[]
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 }
 
 model Account {
@@ -57,6 +58,19 @@ model RefreshToken {
   expiresAt  DateTime
   deviceInfo String?
   createdAt  DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Role {
@@ -249,6 +263,13 @@ model Prompt {
   personality   Personality?  @relation(fields: [personalityId], references: [id])
   presetModeId  String?
   presetMode    PresetMode?   @relation(fields: [presetModeId], references: [id])
+  
+  // Remix / Forking
+  parentId      String?
+  parent        Prompt?       @relation("PromptRemixes", fields: [parentId], references: [id])
+  children      Prompt[]      @relation("PromptRemixes")
+  remixCount    Int           @default(0)
+
   tags          PromptTag[]
   votes         Vote[]
   comments      Comment[]

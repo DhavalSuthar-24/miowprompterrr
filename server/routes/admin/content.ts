@@ -21,8 +21,22 @@ interface AuthRequest extends Request {
 // ============================================================================
 
 /**
- * GET /api/admin/content/personalities
- * List all personalities including inactive
+ * @swagger
+ * /api/admin/content/personalities:
+ *   get:
+ *     summary: List all personalities
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: includeInactive
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *     responses:
+ *       200:
+ *         description: List of personalities
  */
 router.get("/personalities", async (req: Request, res: Response) => {
   try {
@@ -67,8 +81,32 @@ router.get("/personalities", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/content/personalities
- * Create new personality
+ * @swagger
+ * /api/admin/content/personalities:
+ *   post:
+ *     summary: Create new personality
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, description]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               isDefault:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Personality created
  */
 router.post("/personalities", async (req: Request, res: Response) => {
   try {
@@ -176,8 +214,34 @@ router.post("/personalities", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/content/personalities/:id
- * Update personality
+ * @swagger
+ * /api/admin/content/personalities/{id}:
+ *   put:
+ *     summary: Update personality
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Personality updated
  */
 router.put("/personalities/:id", async (req: Request, res: Response) => {
   try {
@@ -258,8 +322,22 @@ router.put("/personalities/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/content/personalities/:id
- * Soft delete personality (set isActive = false)
+ * @swagger
+ * /api/admin/content/personalities/{id}:
+ *   delete:
+ *     summary: Deactivate personality
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Personality deactivated
  */
 router.delete("/personalities/:id", async (req: Request, res: Response) => {
   try {
@@ -305,8 +383,33 @@ router.delete("/personalities/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/content/personalities/reorder
- * Bulk reorder personalities
+ * @swagger
+ * /api/admin/content/personalities/reorder:
+ *   put:
+ *     summary: Reorder personalities
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [items]
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     sortOrder:
+ *                       type: integer
+ *     responses:
+ *       200:
+ *         description: Personalities reordered
  */
 router.put("/personalities/reorder", async (req: Request, res: Response) => {
   try {
@@ -355,7 +458,16 @@ router.put("/personalities/reorder", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/content/presets
+ * @swagger
+ * /api/admin/content/presets:
+ *   get:
+ *     summary: List all presets
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of presets
  */
 router.get("/presets", async (_req: Request, res: Response) => {
   try {
@@ -391,7 +503,30 @@ router.get("/presets", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/content/presets
+ * @swagger
+ * /api/admin/content/presets:
+ *   post:
+ *     summary: Create new preset
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, description, config]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               config:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Preset created
  */
 router.post("/presets", async (req: Request, res: Response) => {
   try {
@@ -446,7 +581,36 @@ router.post("/presets", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/content/presets/:id
+ * @swagger
+ * /api/admin/content/presets/{id}:
+ *   put:
+ *     summary: Update preset
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               config:
+ *                 type: object
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Preset updated
  */
 router.put("/presets/:id", async (req: Request, res: Response) => {
   try {
@@ -502,7 +666,22 @@ router.put("/presets/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/content/presets/:id
+ * @swagger
+ * /api/admin/content/presets/{id}:
+ *   delete:
+ *     summary: Deactivate preset
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preset deactivated
  */
 router.delete("/presets/:id", async (req: Request, res: Response) => {
   try {
@@ -535,7 +714,16 @@ router.delete("/presets/:id", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/content/tiers
+ * @swagger
+ * /api/admin/content/tiers:
+ *   get:
+ *     summary: List all tiers
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tiers
  */
 router.get("/tiers", async (_req: Request, res: Response) => {
   try {
@@ -564,7 +752,30 @@ router.get("/tiers", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/content/tiers
+ * @swagger
+ * /api/admin/content/tiers:
+ *   post:
+ *     summary: Create new tier
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [label, color, description]
+ *             properties:
+ *               label:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Tier created
  */
 router.post("/tiers", async (req: Request, res: Response) => {
   try {
@@ -615,7 +826,36 @@ router.post("/tiers", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/content/tiers/:id
+ * @swagger
+ * /api/admin/content/tiers/{id}:
+ *   put:
+ *     summary: Update tier
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Tier updated
  */
 router.put("/tiers/:id", async (req: Request, res: Response) => {
   try {
@@ -656,7 +896,30 @@ router.put("/tiers/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/content/techniques
+ * @swagger
+ * /api/admin/content/techniques:
+ *   post:
+ *     summary: Create new technique
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tierId, label, description]
+ *             properties:
+ *               tierId:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Technique created
  */
 router.post("/techniques", async (req: Request, res: Response) => {
   try {
@@ -710,7 +973,36 @@ router.post("/techniques", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/content/techniques/:id
+ * @swagger
+ * /api/admin/content/techniques/{id}:
+ *   put:
+ *     summary: Update technique
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               tierId:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Technique updated
  */
 router.put("/techniques/:id", async (req: Request, res: Response) => {
   try {
@@ -751,7 +1043,22 @@ router.put("/techniques/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/content/techniques/:id
+ * @swagger
+ * /api/admin/content/techniques/{id}:
+ *   delete:
+ *     summary: Deactivate technique
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Technique deactivated
  */
 router.delete("/techniques/:id", async (req: Request, res: Response) => {
   try {

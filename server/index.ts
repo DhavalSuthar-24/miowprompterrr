@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import { config } from "./config";
 import { authRoutes, onboardingRoutes, googleRoutes, apiRoutes, adminRoutes } from "./routes";
 import { globalLimiter, configureSecurity } from "./middleware/security";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
 
 const app = express();
 
@@ -43,6 +45,9 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
+// Swagger Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // API Routes
 app.use("/auth", authRoutes);
 app.use("/auth", googleRoutes); // Google OAuth (separate from rate limited auth)
@@ -79,6 +84,7 @@ if (process.env.NODE_ENV !== "test") {
   🚀 MiowNation Server
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   📍 Server running on http://localhost:${config.port}
+  📚 Documentation: http://localhost:${config.port}/api-docs
   🔐 Auth endpoints: /auth/*
   🔵 Google OAuth: /auth/google
   📋 Onboarding: /onboarding/*

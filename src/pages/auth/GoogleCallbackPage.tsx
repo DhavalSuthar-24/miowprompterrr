@@ -2,55 +2,83 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "../../contexts";
-import { api } from "../../lib/api";
+
+// Helper to get cookie value
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
 
 export function GoogleCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login: storeLogin } = useAuth();
+  const { refreshToken } = useAuth();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {
     const handleCallback = async () => {
-      const code = searchParams.get("code");
-      const state = searchParams.get("state");
+      // Check for success parameter from backend redirect
+      const success = searchParams.get("success");
       const errorParam = searchParams.get("error");
+      const onboardingCompleted = searchParams.get("onboardingCompleted");
+      const redirectTo = searchParams.get("redirect") || "/";
 
       if (errorParam) {
         setStatus("error");
-        setError("Google login was cancelled or failed");
+        const errorMessages: Record<string, string> = {
+          invalid_state: "Invalid authentication state. Please try again.",
+          state_expired: "Authentication session expired. Please try again.",
+          oauth_denied: "Google login was cancelled.",
+          token_exchange_failed: "Failed to authenticate with Google.",
+          user_info_failed: "Failed to get user information.",
+          no_email: "Email is required for registration.",
+          server_error: "An unexpected error occurred.",
+        };
+        setError(errorMessages[errorParam] || "Google login failed");
         return;
       }
 
-      if (!code) {
-        setStatus("error");
-        setError("No authorization code received");
-        return;
-      }
-
-      try {
-        const response = await api.get<{
-          user: any;
-          accessToken: string;
-        }>(`/auth/google/callback?code=${code}&state=${state || ""}`);
-
-        if (response.success && response.data) {
-          // Store auth data and redirect
-          storeLogin(response.data.user, response.data.accessToken);
-          setStatus("success");
-          setTimeout(() => navigate("/"), 1500);
-        } else {
-          throw new Error(response.message || "OAuth failed");
+      if (success === "true") {
+        // Backend has set cookies - get access token from cookie
+        const accessToken = getCookie("access_token");
+        
+        if (!accessToken) {
+          setStatus("error");
+          setError("Authentication failed - no token received");
+          return;
         }
-      } catch (err: any) {
+
+        try {
+          // Refresh token to get user data and update auth state
+          await refreshToken();
+          
+          setStatus("success");
+          
+          // Redirect after a brief success message
+          setTimeout(() => {
+            // If onboarding not completed, redirect to onboarding
+            if (onboardingCompleted === "false") {
+              navigate("/onboarding");
+            } else {
+              navigate(redirectTo);
+            }
+          }, 1500);
+        } catch (err: any) {
+          setStatus("error");
+          setError(err.message || "Failed to complete authentication");
+        }
+      } else {
+        // No success param - this is an error or invalid access
         setStatus("error");
-        setError(err.message || "Failed to complete Google login");
+        setError("Invalid callback. Please try logging in again.");
       }
     };
 
     handleCallback();
-  }, [searchParams, navigate, storeLogin]);
+  }, [searchParams, navigate, refreshToken]);
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -94,3 +122,4 @@ export function GoogleCallbackPage() {
     </div>
   );
 }
+

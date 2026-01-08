@@ -26,7 +26,7 @@ export function useComments(promptId: string, sortBy: "top" | "new" | "old" = "t
 /**
  * Fetch replies for a comment
  */
-export function useCommentReplies(commentId: string) {
+export function useCommentReplies(commentId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["comments", commentId, "replies"],
     queryFn: async () => {
@@ -36,7 +36,7 @@ export function useCommentReplies(commentId: string) {
       }
       return response.data || [];
     },
-    enabled: !!commentId,
+    enabled: options?.enabled ?? !!commentId,
   });
 }
 

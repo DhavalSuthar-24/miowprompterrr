@@ -10,8 +10,14 @@ const validTypes = ["tone", "focus", "constraint", "interest", "perspective"] as
 type OptionType = (typeof validTypes)[number];
 
 /**
- * GET /api/options
- * Get all options grouped by type
+ * @swagger
+ * /api/options:
+ *   get:
+ *     summary: Get all options grouped by type
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: Grouped options
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
@@ -52,8 +58,21 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/options/:type
- * Get options by type (tone, focus, constraint, interest, perspective)
+ * @swagger
+ * /api/options/{type}:
+ *   get:
+ *     summary: Get options by type
+ *     tags: [Config]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [tone, focus, constraint, interest, perspective]
+ *     responses:
+ *       200:
+ *         description: List of options
  */
 router.get("/:type", async (req: Request, res: Response) => {
   try {

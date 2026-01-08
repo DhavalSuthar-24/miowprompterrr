@@ -15,7 +15,16 @@ router.use(requireAdmin);
 // ============================================================================
 
 /**
- * GET /api/admin/more/task-types
+ * @swagger
+ * /api/admin/more/task-types:
+ *   get:
+ *     summary: List task types
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of task types
  */
 router.get("/task-types", async (_req: Request, res: Response) => {
   try {
@@ -39,7 +48,30 @@ router.get("/task-types", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/more/task-types
+ * @swagger
+ * /api/admin/more/task-types:
+ *   post:
+ *     summary: Create task type
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [value, label]
+ *             properties:
+ *               value:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               rolePreset:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Task type created
  */
 router.post("/task-types", async (req: Request, res: Response) => {
   try {
@@ -86,7 +118,36 @@ router.post("/task-types", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/more/task-types/:id
+ * @swagger
+ * /api/admin/more/task-types/{id}:
+ *   put:
+ *     summary: Update task type
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               value:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               rolePreset:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Task type updated
  */
 router.put("/task-types/:id", async (req: Request, res: Response) => {
   try {
@@ -124,7 +185,22 @@ router.put("/task-types/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/more/task-types/:id
+ * @swagger
+ * /api/admin/more/task-types/{id}:
+ *   delete:
+ *     summary: Deactivate task type
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Task type deactivated
  */
 router.delete("/task-types/:id", async (req: Request, res: Response) => {
   try {
@@ -157,7 +233,16 @@ router.delete("/task-types/:id", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/more/templates/reasoning
+ * @swagger
+ * /api/admin/more/templates/reasoning:
+ *   get:
+ *     summary: List reasoning templates
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of templates
  */
 router.get("/templates/reasoning", async (_req: Request, res: Response) => {
   try {
@@ -181,7 +266,30 @@ router.get("/templates/reasoning", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/more/templates/reasoning
+ * @swagger
+ * /api/admin/more/templates/reasoning:
+ *   post:
+ *     summary: Create reasoning template
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, steps]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               steps:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Template created
  */
 router.post("/templates/reasoning", async (req: Request, res: Response) => {
   try {
@@ -233,7 +341,36 @@ router.post("/templates/reasoning", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/more/templates/reasoning/:id
+ * @swagger
+ * /api/admin/more/templates/reasoning/{id}:
+ *   put:
+ *     summary: Update reasoning template
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               steps:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Template updated
  */
 router.put("/templates/reasoning/:id", async (req: Request, res: Response) => {
   try {
@@ -277,7 +414,16 @@ router.put("/templates/reasoning/:id", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/more/templates/quick
+ * @swagger
+ * /api/admin/more/templates/quick:
+ *   get:
+ *     summary: List quick templates
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of templates
  */
 router.get("/templates/quick", async (_req: Request, res: Response) => {
   try {
@@ -301,7 +447,30 @@ router.get("/templates/quick", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/more/templates/quick
+ * @swagger
+ * /api/admin/more/templates/quick:
+ *   post:
+ *     summary: Create quick template
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, template, category]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               template:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Template created
  */
 router.post("/templates/quick", async (req: Request, res: Response) => {
   try {
@@ -348,7 +517,36 @@ router.post("/templates/quick", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/more/templates/quick/:id
+ * @swagger
+ * /api/admin/more/templates/quick/{id}:
+ *   put:
+ *     summary: Update quick template
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               template:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Template updated
  */
 router.put("/templates/quick/:id", async (req: Request, res: Response) => {
   try {
@@ -390,7 +588,16 @@ router.put("/templates/quick/:id", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/more/options
+ * @swagger
+ * /api/admin/more/options:
+ *   get:
+ *     summary: List all options
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of options
  */
 router.get("/options", async (_req: Request, res: Response) => {
   try {
@@ -425,7 +632,32 @@ router.get("/options", async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/more/options
+ * @swagger
+ * /api/admin/more/options:
+ *   post:
+ *     summary: Create option
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [type, value, label]
+ *             properties:
+ *               type:
+ *                 type: string
+ *               value:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               prefix:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Option created
  */
 router.post("/options", async (req: Request, res: Response) => {
   try {
@@ -484,7 +716,36 @@ router.post("/options", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/more/options/:id
+ * @swagger
+ * /api/admin/more/options/{id}:
+ *   put:
+ *     summary: Update option
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               value:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               prefix:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Option updated
  */
 router.put("/options/:id", async (req: Request, res: Response) => {
   try {
@@ -522,7 +783,22 @@ router.put("/options/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/more/options/:id
+ * @swagger
+ * /api/admin/more/options/{id}:
+ *   delete:
+ *     summary: Deactivate option
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Option deactivated
  */
 router.delete("/options/:id", async (req: Request, res: Response) => {
   try {

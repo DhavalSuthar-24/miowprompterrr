@@ -15,8 +15,34 @@ import { authLimiter } from "../middleware/security";
 const router = Router();
 
 /**
- * POST /auth/register
- * Register a new user with email/password
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, name, username]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Email or Username exists
  */
 router.post("/register", authLimiter, async (req: Request, res: Response) => {
   try {
@@ -159,6 +185,8 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
           email: user.email,
           name: user.name,
           username: user.username,
+          image: user.image,
+          dob: user.dob,
           onboardingCompleted: user.onboardingCompleted,
           roles: user.roles.map((ur: { role: { name: string } }) => ur.role.name),
           permissions,
@@ -178,8 +206,28 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
 });
 
 /**
- * POST /auth/login
- * Login with email/password
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
  */
 router.post("/login", authLimiter, async (req: Request, res: Response) => {
   try {
@@ -280,6 +328,8 @@ router.post("/login", authLimiter, async (req: Request, res: Response) => {
           email: user.email,
           name: user.name,
           username: user.username,
+          image: user.image,
+          dob: user.dob,
           onboardingCompleted: user.onboardingCompleted,
           roles: user.roles.map((ur: { role: { name: string } }) => ur.role.name),
           permissions: permissionsArray,
@@ -556,8 +606,18 @@ router.post("/logout-all", authenticate, async (req: Request, res: Response) => 
 });
 
 /**
- * GET /auth/me
- * Get current authenticated user
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User details
+ *       401:
+ *         description: Unauthorized
  */
 router.get("/me", authenticate, loadPermissions, async (req: Request, res: Response) => {
   try {
@@ -568,6 +628,7 @@ router.get("/me", authenticate, loadPermissions, async (req: Request, res: Respo
         email: true,
         name: true,
         username: true,
+        image: true,
         dob: true,
         emailVerified: true,
         onboardingCompleted: true,
@@ -607,6 +668,215 @@ router.get("/me", authenticate, loadPermissions, async (req: Request, res: Respo
       success: false,
       error: "Server error",
       message: "Failed to get user data",
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset email sent (always returns success for security)
+ */
+router.post("/forgot-password", authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        error: "Validation error",
+        message: "Email is required",
+      });
+      return;
+    }
+
+    // Always respond with success for security (don't reveal if email exists)
+    const successResponse = {
+      success: true,
+      message: "If an account with that email exists, a password reset link has been sent.",
+    };
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: sanitizeEmail(email) },
+    });
+
+    if (!user) {
+      // Return success even if user doesn't exist (security best practice)
+      res.json(successResponse);
+      return;
+    }
+
+    // Check if user has password (OAuth-only users can't reset)
+    if (!user.password) {
+      res.json(successResponse);
+      return;
+    }
+
+    // Delete any existing reset tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Generate secure reset token
+    const resetToken = crypto.randomUUID() + "-" + crypto.randomUUID();
+    const tokenHash = hashToken(resetToken);
+
+    // Store HASHED token with 1 hour expiry
+    await prisma.passwordResetToken.create({
+      data: {
+        token: tokenHash,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      },
+    });
+
+    // In production, send email here. For now, log the token.
+    // TODO: Integrate email service (SendGrid, Resend, etc.)
+    console.log(`[Password Reset] Token for ${email}: ${resetToken}`);
+    console.log(`[Password Reset] Reset URL: /reset-password?token=${resetToken}`);
+
+    res.json(successResponse);
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to process password reset request",
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/reset-password", authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      res.status(400).json({
+        success: false,
+        error: "Validation error",
+        message: "Token and password are required",
+      });
+      return;
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        success: false,
+        error: "Weak password",
+        message: passwordValidation.errors[0],
+        errors: passwordValidation.errors,
+      });
+      return;
+    }
+
+    // Find token by hash
+    const tokenHash = hashToken(token);
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token: tokenHash },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid token",
+        message: "This password reset link is invalid or has already been used.",
+      });
+      return;
+    }
+
+    // Check if expired
+    if (resetToken.expiresAt < new Date()) {
+      await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+      res.status(400).json({
+        success: false,
+        error: "Token expired",
+        message: "This password reset link has expired. Please request a new one.",
+      });
+      return;
+    }
+
+    // Check if already used
+    if (resetToken.used) {
+      res.status(400).json({
+        success: false,
+        error: "Token used",
+        message: "This password reset link has already been used.",
+      });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(password);
+
+    // Update password and mark token as used
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+      }),
+      // Revoke all refresh tokens for security
+      prisma.refreshToken.deleteMany({
+        where: { userId: resetToken.userId },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      message: "Password reset successful. Please login with your new password.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to reset password",
     });
   }
 });

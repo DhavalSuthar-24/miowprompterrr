@@ -16,8 +16,29 @@ router.use(requireAdmin);
 // ============================================================================
 
 /**
- * GET /api/admin/moderation/prompts
- * List all prompts with admin filters
+ * @swagger
+ * /api/admin/moderation/prompts:
+ *   get:
+ *     summary: List prompts for moderation
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of prompts
  */
 router.get("/prompts", async (req: Request, res: Response) => {
   try {
@@ -95,8 +116,33 @@ router.get("/prompts", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/moderation/prompts/:id/status
- * Update prompt status (publish, hide, flag, delete)
+ * @swagger
+ * /api/admin/moderation/prompts/{id}/status:
+ *   put:
+ *     summary: Update prompt status
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, PUBLISHED, HIDDEN, FLAGGED, DELETED]
+ *     responses:
+ *       200:
+ *         description: Status updated
  */
 router.put("/prompts/:id/status", async (req: Request, res: Response) => {
   try {
@@ -138,8 +184,32 @@ router.put("/prompts/:id/status", async (req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/moderation/prompts/:id/featured
- * Toggle featured status
+ * @swagger
+ * /api/admin/moderation/prompts/{id}/featured:
+ *   put:
+ *     summary: Toggle featured status
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [featured]
+ *             properties:
+ *               featured:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Featured status updated
  */
 router.put("/prompts/:id/featured", async (req: Request, res: Response) => {
   try {
@@ -175,8 +245,21 @@ router.put("/prompts/:id/featured", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/moderation/comments
- * List comments with filters
+ * @swagger
+ * /api/admin/moderation/comments:
+ *   get:
+ *     summary: List comments for moderation
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of comments
  */
 router.get("/comments", async (req: Request, res: Response) => {
   try {
@@ -233,8 +316,22 @@ router.get("/comments", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/moderation/comments/:id
- * Hard delete a comment
+ * @swagger
+ * /api/admin/moderation/comments/{id}:
+ *   delete:
+ *     summary: Delete a comment
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comment deleted
  */
 router.delete("/comments/:id", async (req: Request, res: Response) => {
   try {
@@ -266,7 +363,16 @@ router.delete("/comments/:id", async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * GET /api/admin/moderation/tags
+ * @swagger
+ * /api/admin/moderation/tags:
+ *   get:
+ *     summary: List all tags (admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tags
  */
 router.get("/tags", async (_req: Request, res: Response) => {
   try {
@@ -302,7 +408,32 @@ router.get("/tags", async (_req: Request, res: Response) => {
 });
 
 /**
- * PUT /api/admin/moderation/tags/:id
+ * @swagger
+ * /api/admin/moderation/tags/{id}:
+ *   put:
+ *     summary: Update a tag
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Tag updated
  */
 router.put("/tags/:id", async (req: Request, res: Response) => {
   try {
@@ -340,7 +471,22 @@ router.put("/tags/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * DELETE /api/admin/moderation/tags/:id
+ * @swagger
+ * /api/admin/moderation/tags/{id}:
+ *   delete:
+ *     summary: Delete a tag
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tag deleted
  */
 router.delete("/tags/:id", async (req: Request, res: Response) => {
   try {
@@ -374,8 +520,30 @@ router.delete("/tags/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/moderation/tags/merge
- * Merge multiple tags into one
+ * @swagger
+ * /api/admin/moderation/tags/merge:
+ *   post:
+ *     summary: Merge tags
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sourceTagIds, targetTagId]
+ *             properties:
+ *               sourceTagIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               targetTagId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Tags merged
  */
 router.post("/tags/merge", async (req: Request, res: Response) => {
   try {

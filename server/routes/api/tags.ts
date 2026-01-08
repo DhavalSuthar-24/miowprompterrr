@@ -14,8 +14,24 @@ import { AuthRequest } from "../../types/request";
 const router = Router();
 
 /**
- * GET /api/tags
- * Get all tags with use counts, sorted by popularity
+ * @swagger
+ * /api/tags:
+ *   get:
+ *     summary: Get all tags
+ *     tags: [Tags]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [useCount, name, recent]
+ *     responses:
+ *       200:
+ *         description: List of tags
  */
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -52,8 +68,14 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/tags/popular
- * Get top 10 most used tags
+ * @swagger
+ * /api/tags/popular:
+ *   get:
+ *     summary: Get top 10 popular tags
+ *     tags: [Tags]
+ *     responses:
+ *       200:
+ *         description: List of popular tags
  */
 router.get("/popular", async (_req: Request, res: Response) => {
   try {
@@ -76,8 +98,33 @@ router.get("/popular", async (_req: Request, res: Response) => {
 });
 
 /**
- * GET /api/tags/:slug
- * Get single tag with associated prompts
+ * @swagger
+ * /api/tags/{slug}:
+ *   get:
+ *     summary: Get single tag and its prompts
+ *     tags: [Tags]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [recent, top, controversial]
+ *     responses:
+ *       200:
+ *         description: Tag details
  */
 router.get("/:slug", optionalAuthenticate, async (req: Request, res: Response) => {
   try {
@@ -211,8 +258,28 @@ router.get("/:slug", optionalAuthenticate, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/tags
- * Create a new tag (admin only - will add authorization later)
+ * @swagger
+ * /api/tags:
+ *   post:
+ *     summary: Create a new tag
+ *     tags: [Tags]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               color:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Tag created
  */
 router.post("/", authenticate, async (req: Request, res: Response) => {
   try {

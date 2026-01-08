@@ -14,8 +14,33 @@ import { AuthRequest } from "../../types/request";
 const router = Router();
 
 /**
- * POST /api/prompts/:promptId/vote
- * Vote on a prompt (upvote: 1, downvote: -1)
+ * @swagger
+ * /api/prompts/{promptId}/vote:
+ *   post:
+ *     summary: Vote on a prompt
+ *     tags: [Votes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: promptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [value]
+ *             properties:
+ *               value:
+ *                 type: integer
+ *                 enum: [1, -1]
+ *     responses:
+ *       200:
+ *         description: Vote recorded
  */
 router.post("/prompts/:promptId/vote", authenticate, async (req: Request, res: Response) => {
   try {
@@ -145,8 +170,22 @@ router.post("/prompts/:promptId/vote", authenticate, async (req: Request, res: R
 });
 
 /**
- * DELETE /api/prompts/:promptId/vote
- * Remove vote from a prompt
+ * @swagger
+ * /api/prompts/{promptId}/vote:
+ *   delete:
+ *     summary: Remove vote from a prompt
+ *     tags: [Votes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: promptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vote removed
  */
 router.delete("/prompts/:promptId/vote", authenticate, async (req: Request, res: Response) => {
   try {
@@ -195,8 +234,33 @@ router.delete("/prompts/:promptId/vote", authenticate, async (req: Request, res:
 });
 
 /**
- * POST /api/comments/:commentId/vote
- * Vote on a comment
+ * @swagger
+ * /api/comments/{commentId}/vote:
+ *   post:
+ *     summary: Vote on a comment
+ *     tags: [Votes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [value]
+ *             properties:
+ *               value:
+ *                 type: integer
+ *                 enum: [1, -1]
+ *     responses:
+ *       200:
+ *         description: Vote recorded
  */
 router.post("/comments/:commentId/vote", authenticate, async (req: Request, res: Response) => {
   try {

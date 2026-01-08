@@ -1,23 +1,52 @@
-import { useState, useRef, useEffect } from "react";
-import toast from 'react-hot-toast';
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
+import toast, { Toaster } from 'react-hot-toast'; // Toaster is not used here but kept if needed
+import { api } from "../lib/api";
 import {
   interestModes,
-  personalities,
+  personalities as defaultPersonalities,
   perspectiveModes,
-  presetModes,
-  reasoningTemplates,
+  presetModes as defaultPresets,
+  reasoningTemplates as defaultReasoningTemplates,
   rolePresets,
-  taskTypes,
-  techniquesByTier,
-  tiers,
+  taskTypes as defaultTaskTypes,
+  techniquesByTier, // This structure is complex, might need special handling
+  tiers as defaultTiers,
   tones,
   focusOptions,
   constraintOptions,
-  quickTemplates
+  quickTemplates as defaultQuickTemplates
 } from "../constants";
 import { usePromptHistory, usePromptScorer, usePromptLibrary } from "./usePromptFeatures";
+import { useConfigStore } from "../stores/configStore";
 
 export const useMiowNationLogic = () => {
+  const location = useLocation(); // React Router location for reactivity
+
+  // Config from Store (Dynamic)
+  const store = useConfigStore();
+
+  // Merge or Fallback logic
+  // If store has data (length > 0), use it. Else use defaults.
+  const personalities = store.personalities.length > 0 ? store.personalities : defaultPersonalities;
+  const tiers = store.tiers.length > 0 ? store.tiers : defaultTiers;
+  const presets = store.presets.length > 0 ? store.presets : defaultPresets;
+  // Note: reasoningTemplates in store is an Array, but constants.js uses an Object keyed by ID?
+  // Let's check constants.js format again later. Assuming Store matches API which matches constants?
+  // Actually, constants.js `reasoningTemplates` is huge object. Store defines it as `ReasoningTemplate[]`.
+  // We need to map array to object if logic uses object access.
+
+  const reasoningTemplates = useMemo(() => {
+    if (store.reasoningTemplates.length > 0) {
+      // Convert Array to Object keyed by ID
+      return store.reasoningTemplates.reduce((acc, curr) => ({ ...acc, [curr.id]: curr }), {});
+    }
+    return defaultReasoningTemplates;
+  }, [store.reasoningTemplates]);
+
+  const taskTypes = store.taskTypes.length > 0 ? store.taskTypes : defaultTaskTypes;
+  const quickTemplates = store.quickTemplates.length > 0 ? store.quickTemplates : defaultQuickTemplates;
+
   // Initialize state from localStorage
   const [inputPrompt, setInputPrompt] = useState(() => {
     try {
@@ -63,6 +92,8 @@ export const useMiowNationLogic = () => {
     expertise: "expert",
     age: "28",
     background: "",
+    sourceId: null,
+    remixMeta: null, // { title, author }
   });
 
   const [examples, setExamples] = useState([]);
@@ -86,6 +117,63 @@ export const useMiowNationLogic = () => {
   const promptScorer = usePromptScorer();
   const promptLibrary = usePromptLibrary();
 
+
+  // ---------- Load from Source (Remixing) ----------
+  const loadFromSource = async (id) => {
+    try {
+      const response = await api.get(`/api/prompts/${id}/source`);
+      if (response.success && response.data) {
+        const { id: promptId, title, input, personalityId, presetModeId, tags, author } = response.data;
+
+        // Hydrate Basic Info
+        setInputPrompt(input || "");
+        setPromptName(title ? `Remix of ${title}` : "");
+        setPromptTags(Array.isArray(tags) ? tags.join(', ') : "");
+
+        // Hydrate Settings
+        setSettings(prev => {
+          let newSettings = {
+            ...prev,
+            sourceId: promptId,
+            remixMeta: { title, author }
+          };
+
+          if (personalityId) {
+            newSettings.personality = personalityId;
+          }
+
+          return newSettings;
+        });
+
+        // Apply Preset if exists
+        if (presetModeId) {
+          const mode = presets.find(m => m.id === presetModeId);
+          if (mode) {
+            setSettings(prev => ({
+              ...prev,
+              ...mode.config,
+              personality: personalityId || prev.personality
+            }));
+          }
+        }
+
+        toast.success('Prompt loaded for remixing!', { icon: '🔄' });
+      } else {
+        toast.error(`Failed to load source: ${response.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error loading prompt source:", error);
+      toast.error('Error loading prompt source.');
+    }
+  };
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const sourceId = queryParams.get('source');
+    if (sourceId) {
+      loadFromSource(sourceId);
+    }
+  }, [location.search]);
 
   // ---------- URL Share/Load ----------
   const serializeState = () => {

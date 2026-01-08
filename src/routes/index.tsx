@@ -23,6 +23,7 @@ const RegisterPage = lazy(() => import("../pages/auth/RegisterPage").then(m => (
 const ForgotPasswordPage = lazy(() => import("../pages/auth/ForgotPasswordPage").then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazy(() => import("../pages/auth/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 const GoogleCallbackPage = lazy(() => import("../pages/auth/GoogleCallbackPage").then(m => ({ default: m.GoogleCallbackPage })));
+const OnboardingPage = lazy(() => import("../pages/auth/OnboardingPage").then(m => ({ default: m.OnboardingPage })));
 
 // Admin Pages (to be created)
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
@@ -113,6 +114,16 @@ export const router = createBrowserRouter([
       {
         path: "/reset-password",
         element: withSuspense(ResetPasswordPage),
+      },
+    ],
+  },
+  // Onboarding (Protected, Standalone)
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/onboarding",
+        element: withSuspense(OnboardingPage),
       },
     ],
   },

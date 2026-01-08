@@ -22,8 +22,26 @@ const upload = multer({
 });
 
 /**
- * POST /api/upload
- * Upload an image (Authentication required)
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload an image
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Image uploaded
  */
 router.post(
   "/",

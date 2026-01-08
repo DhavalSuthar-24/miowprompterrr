@@ -10,8 +10,28 @@ const router = Router();
 
 
 /**
- * PATCH /api/users/me
- * Update current user profile
+ * @swagger
+ * /api/users/me:
+ *   patch:
+ *     summary: Update current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
  */
 router.patch("/me", authenticate, async (req: Request, res: Response) => {
   try {
@@ -46,8 +66,28 @@ router.patch("/me", authenticate, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/users/:userId/prompts
- * Get user's public prompts
+ * @swagger
+ * /api/users/{userId}/prompts:
+ *   get:
+ *     summary: Get user's public prompts
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: User prompts
  */
 router.get("/:userId/prompts", optionalAuthenticate, async (req: Request, res: Response) => {
   try {
@@ -150,8 +190,30 @@ router.get("/:userId/prompts", optionalAuthenticate, async (req: Request, res: R
 });
 
 /**
- * GET /api/users/:userId/saved
- * Get user's saved prompts (only owner can view)
+ * @swagger
+ * /api/users/{userId}/saved:
+ *   get:
+ *     summary: Get user's saved prompts
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Saved prompts
  */
 router.get("/:userId/saved", authenticate, async (req: Request, res: Response) => {
   try {
@@ -230,8 +292,28 @@ router.get("/:userId/saved", authenticate, async (req: Request, res: Response) =
 });
 
 /**
- * GET /api/feed
- * Get personalized feed for authenticated user
+ * @swagger
+ * /api/feed:
+ *   get:
+ *     summary: Get personalized feed
+ *     tags: [Feed]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: filter
+ *         schema:
+ *           type: string
+ *           enum: [hot, new, top, rising]
+ *     responses:
+ *       200:
+ *         description: Feed prompts
  */
 router.get("/", optionalAuthenticate, async (req: Request, res: Response) => {
   try {
