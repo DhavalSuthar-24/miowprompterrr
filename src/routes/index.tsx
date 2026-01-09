@@ -84,6 +84,10 @@ export const router = createBrowserRouter([
             element: withSuspense(CreatePromptPage),
           },
           {
+            path: "/create",
+            element: withSuspense(CreatePromptPage),
+          },
+          {
             path: "/prompts/:id/edit",
             element: withSuspense(EditPromptPage),
           },

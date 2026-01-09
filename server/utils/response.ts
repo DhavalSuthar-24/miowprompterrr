@@ -42,7 +42,13 @@ export function sendError(
   message = "An error occurred",
   statusCode = 500
 ) {
-  console.error(`[Error] ${message}:`, error);
+  // Only log server errors as critical, client errors as info/warn
+  if (statusCode >= 500) {
+    console.error(`[Error] ${message}:`, error);
+  } else {
+    // For 404s and validation errors, we might not even need the stack trace
+    console.warn(`[Client Error] ${statusCode} ${message}`);
+  }
   
   const errorMessage = error instanceof Error ? error.message : String(error);
   

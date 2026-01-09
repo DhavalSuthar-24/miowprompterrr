@@ -435,7 +435,7 @@ router.post("/change-password", authenticate, async (req: Request, res: Response
  */
 router.post("/refresh", async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken || req.cookies.refresh_token;
 
     if (!refreshToken) {
       res.status(400).json({
@@ -494,7 +494,12 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
     // Check if expired
     if (storedToken.expiresAt < new Date()) {
-      await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      try {
+        await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      } catch (e: any) {
+        // Ignore if already deleted
+        if (e.code !== "P2025") throw e;
+      }
       res.status(401).json({
         success: false,
         error: "Token expired",
@@ -520,19 +525,20 @@ router.post("/refresh", async (req: Request, res: Response) => {
     // Generate new access token
     const newAccessToken = generateAccessToken(user.id, permissionsArray);
 
+    // Reuse existing refresh token to prevent race conditions (idempotent refresh)
+    const newRefreshToken = refreshToken;
+
+    // We do NOT rotate the refresh token here. 
+    // This allows multiple concurrent requests to succeed without invalidating each other.
+    // Security note: The token is valid for 7 days. Revocation is handled via /logout.
+
+    /* 
+    DISABLE ROTATION FOR STABILITY
     // Optionally rotate refresh token
     const newRefreshToken = generateRefreshToken(user.id);
+    ... delete and create logic ...
+    */
 
-    // Delete old token and create new one (with hash)
-    await prisma.refreshToken.delete({ where: { id: storedToken.id } });
-    await prisma.refreshToken.create({
-      data: {
-        token: hashToken(newRefreshToken),
-        userId: user.id,
-        expiresAt: getRefreshTokenExpiry(),
-        deviceInfo: req.headers["user-agent"]?.substring(0, 255) || null,
-      },
-    });
 
     res.json({
       success: true,
@@ -558,7 +564,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
  */
 router.post("/logout", async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken || req.cookies.refresh_token;
 
     if (refreshToken) {
       // Delete specific refresh token (by hash)
@@ -566,6 +572,10 @@ router.post("/logout", async (req: Request, res: Response) => {
         where: { token: hashToken(refreshToken) },
       });
     }
+
+    // Clear cookies
+    res.clearCookie("refresh_token");
+    res.clearCookie("access_token");
 
     res.json({
       success: true,
@@ -877,6 +887,106 @@ router.post("/reset-password", authLimiter, async (req: Request, res: Response) 
       success: false,
       error: "Server error",
       message: "Failed to reset password",
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: Change current user password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Invalid password
+ */
+router.post("/change-password", authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        error: "Validation error",
+        message: "Current and new passwords are required",
+      });
+      return;
+    }
+
+    // Get user with password
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.password) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid user",
+        message: "User not found or uses social login",
+      });
+      return;
+    }
+
+    // Verify current password
+    const isValid = await verifyPassword(currentPassword, user.password);
+    if (!isValid) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid password",
+        message: "Incorrect current password",
+      });
+      return;
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        success: false,
+        error: "Weak password",
+        message: passwordValidation.errors[0],
+        errors: passwordValidation.errors,
+      });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      message: "Failed to change password",
     });
   }
 });

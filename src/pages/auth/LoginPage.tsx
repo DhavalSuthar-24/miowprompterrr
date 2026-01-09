@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "../../contexts";
+import { API_BASE_URL } from "../../lib/api";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "/auth/google";
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   return (
