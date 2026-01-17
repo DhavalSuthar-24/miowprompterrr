@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import toast, { Toaster } from 'react-hot-toast'; // Toaster is not used here but kept if needed
 import { api } from "../lib/api";
@@ -259,14 +259,14 @@ export const useMiowNationLogic = () => {
     return () => clearTimeout(timer);
   }, [inputPrompt]);
 
-  const loadPresetMode = (modeId) => {
+  const loadPresetMode = useCallback((modeId) => {
     const mode = presetModes.find((m) => m.id === modeId);
     if (mode) {
-      setSettings({ ...settings, ...mode.config });
+      setSettings((prev) => ({ ...prev, ...mode.config }));
     }
-  };
+  }, [presetModes, settings]);
 
-  const generatePromptByTechnique = () => {
+  const generatePromptByTechnique = useCallback(() => {
     let prompt = "";
 
     if (settings.personality !== "none") {
@@ -361,11 +361,13 @@ export const useMiowNationLogic = () => {
 
     if (settings.reasoningMode) {
       const template = reasoningTemplates[settings.reasoningSteps];
-      prompt += `Before answering, work through this step-by-step:\n\n`;
-      template.steps.forEach((step, i) => {
-        prompt += `${i + 1}. ${step}\n`;
-      });
-      prompt += "\n";
+      if (template) {
+        prompt += `Before answering, work through this step-by-step:\n\n`;
+        template.steps.forEach((step, i) => {
+          prompt += `${i + 1}. ${step}\n`;
+        });
+        prompt += "\n";
+      }
     }
 
     if (settings.useXML) {
@@ -532,9 +534,18 @@ export const useMiowNationLogic = () => {
     }
 
     return prompt;
-  };
+  }, [
+    settings,
+    personalities,
+    interestModes,
+    reasoningTemplates,
+    inputPrompt,
+    customCategories,
+    variables,
+    examples
+  ]);
 
-  const improvePrompt = () => {
+  const improvePrompt = useCallback(() => {
     if (!inputPrompt.trim()) return;
 
     const improved = generatePromptByTechnique();
@@ -614,10 +625,18 @@ export const useMiowNationLogic = () => {
       },
       duration: 3500,
     });
-  };
+  }, [
+    inputPrompt,
+    generatePromptByTechnique,
+    settings,
+    examples,
+    variables,
+    promptScorer,
+    promptHistory
+  ]);
 
 
-  const loadQuickTemplate = (template) => {
+  const loadQuickTemplate = useCallback((template) => {
     setInputPrompt(template);
     toast.success('Template loaded successfully!', {
       icon: '📄',
@@ -627,56 +646,60 @@ export const useMiowNationLogic = () => {
         border: '2px solid #A78BFA',
       },
     });
-  };
+  }, []);
 
-  const addExample = () => {
+  const addExample = useCallback(() => {
     if (newExample.input.trim() && newExample.output.trim()) {
-      setExamples([...examples, newExample]);
+      setExamples((prev) => [...prev, newExample]);
       setNewExample({ input: "", output: "" });
     }
-  };
+  }, [newExample]);
 
-  const removeExample = (idx) => {
-    setExamples(examples.filter((_, i) => i !== idx));
-  };
+  const removeExample = useCallback((idx) => {
+    setExamples((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
 
-  const addVariable = () => {
+  const addVariable = useCallback(() => {
     if (newVariable.name.trim() && newVariable.description.trim()) {
-      setVariables([...variables, newVariable]);
+      setVariables((prev) => [...prev, newVariable]);
       setNewVariable({ name: "", description: "" });
     }
-  };
+  }, [newVariable]);
 
-  const removeVariable = (idx) => {
-    setVariables(variables.filter((_, i) => i !== idx));
-  };
+  const removeVariable = useCallback((idx) => {
+    setVariables((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
 
-  const addCategory = () => {
+  const addCategory = useCallback(() => {
     if (newCategory.trim()) {
-      setCustomCategories([...customCategories, newCategory.trim()]);
+      setCustomCategories((prev) => [...prev, newCategory.trim()]);
       setNewCategory("");
     }
-  };
+  }, [newCategory]);
 
-  const removeCategory = (idx) => {
-    setCustomCategories(customCategories.filter((_, i) => i !== idx));
-  };
+  const removeCategory = useCallback((idx) => {
+    setCustomCategories((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
 
-  const toggleFocus = (focus) => {
-    const updated = settings.focusAreas.includes(focus)
-      ? settings.focusAreas.filter((f) => f !== focus)
-      : [...settings.focusAreas, focus];
-    setSettings({ ...settings, focusAreas: updated });
-  };
+  const toggleFocus = useCallback((focus) => {
+    setSettings((prev) => {
+      const updated = prev.focusAreas.includes(focus)
+        ? prev.focusAreas.filter((f) => f !== focus)
+        : [...prev.focusAreas, focus];
+      return { ...prev, focusAreas: updated };
+    });
+  }, []);
 
-  const toggleConstraint = (constraint) => {
-    const updated = settings.constraints.includes(constraint)
-      ? settings.constraints.filter((c) => c !== constraint)
-      : [...settings.constraints, constraint];
-    setSettings({ ...settings, constraints: updated });
-  };
+  const toggleConstraint = useCallback((constraint) => {
+    setSettings((prev) => {
+      const updated = prev.constraints.includes(constraint)
+        ? prev.constraints.filter((c) => c !== constraint)
+        : [...prev.constraints, constraint];
+      return { ...prev, constraints: updated };
+    });
+  }, []);
 
-  const savePrompt = () => {
+  const savePrompt = useCallback((commitMessage = "") => {
     if (!promptName.trim()) {
       toast.error('Please enter a prompt name', {
         icon: '⚠️',
@@ -701,10 +724,9 @@ export const useMiowNationLogic = () => {
       return;
     }
 
-    const saved = {
-      id: Date.now(),
-      name: promptName.trim(),
-      timestamp: new Date().toLocaleString(),
+    const currentTimestamp = new Date().toLocaleString();
+    const newSnapshot = {
+      timestamp: currentTimestamp,
       input: inputPrompt,
       improved: improvedPrompt,
       settings: settings,
@@ -715,37 +737,74 @@ export const useMiowNationLogic = () => {
         .split(",")
         .map((t) => t.trim())
         .filter((t) => t.length > 0),
+      commitMessage: commitMessage || "Update",
     };
 
-    setSavedPrompts([...savedPrompts, saved]);
+    setSavedPrompts((prevSaved) => {
+      const existingIndex = prevSaved.findIndex(p => p.name === promptName.trim());
+
+      if (existingIndex >= 0) {
+        // Update existing with versioning
+        const existing = prevSaved[existingIndex];
+        const versions = existing.versions || [];
+
+        // Snapshot the *previous* head state into versions history
+        const previousSnapshot = {
+          timestamp: existing.timestamp,
+          input: existing.input,
+          improved: existing.improved,
+          settings: existing.settings,
+          examples: existing.examples,
+          variables: existing.variables,
+          categories: existing.categories,
+          tags: existing.tags,
+          commitMessage: existing.commitMessage || "Initial Save",
+          versionId: Date.now()
+        };
+
+        const updatedPrompt = {
+          ...existing,
+          ...newSnapshot, // Overwrite with new data
+          id: existing.id, // Keep ID
+          versions: [previousSnapshot, ...versions] // Prepend previous to history
+        };
+
+        const updatedPrompts = [...prevSaved];
+        updatedPrompts[existingIndex] = updatedPrompt;
+
+        toast.success(`New version of "${promptName}" saved!`, { icon: 'ue007' });
+        return updatedPrompts;
+      } else {
+        // Create New
+        const newPrompt = {
+          id: Date.now(),
+          name: promptName.trim(),
+          ...newSnapshot,
+          versions: []
+        };
+        toast.success(`Prompt "${newPrompt.name}" saved successfully!`, { icon: 'ue007' });
+        return [...prevSaved, newPrompt];
+      }
+    });
+
     setPromptName("");
     setPromptTags("");
+  }, [promptName, inputPrompt, improvedPrompt, settings, examples, variables, customCategories, promptTags]);
 
-    // Show success feedback with toast
-    toast.success(`Prompt "${saved.name}" saved successfully!`, {
-      icon: '💾',
-      style: {
-        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-        color: '#FFFFFF',
-        border: '2px solid #34D399',
-      },
-    });
-  };
-
-  const loadPrompt = (saved) => {
+  const loadPrompt = useCallback((saved) => {
     setInputPrompt(saved.input);
     setImprovedPrompt(saved.improved);
     setSettings(saved.settings);
     setExamples(saved.examples || []);
     setVariables(saved.variables || []);
     setCustomCategories(saved.categories || []);
-  };
+  }, []);
 
-  const deletePrompt = (id) => {
-    setSavedPrompts(savedPrompts.filter((p) => p.id !== id));
-  };
+  const deletePrompt = useCallback((id) => {
+    setSavedPrompts((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
-  const exportPrompt = (format = "json") => {
+  const exportPrompt = useCallback((format = "json") => {
     const data = {
       input: inputPrompt,
       improved: improvedPrompt,
@@ -796,9 +855,9 @@ export const useMiowNationLogic = () => {
       a.click();
       return;
     }
-  };
+  }, [inputPrompt, improvedPrompt, settings, examples, variables, customCategories, location.href]);
 
-  const importPrompt = (e) => {
+  const importPrompt = useCallback((e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -823,9 +882,9 @@ export const useMiowNationLogic = () => {
       }
     };
     reader.readAsText(file);
-  };
+  }, [settings]);
 
-  const resetAll = () => {
+  const resetAll = useCallback(() => {
     setInputPrompt("");
     setImprovedPrompt("");
     setAnalysis(null);
@@ -862,7 +921,7 @@ export const useMiowNationLogic = () => {
       age: "28",
       background: "",
     });
-  };
+  }, []);
 
   return {
     // State

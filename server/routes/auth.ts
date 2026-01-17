@@ -11,6 +11,11 @@ import {
 import { hashToken, sanitizeEmail, sanitizeUsername, sanitizeInput } from "../utils/security";
 import { authenticate, loadPermissions } from "../middleware";
 import { authLimiter } from "../middleware/security";
+import { validateResource } from "../middleware/validate";
+import { asyncHandler } from "../utils/asyncHandler";
+import { AppError } from "../utils/AppError";
+import { logger } from "../utils/logger";
+import { registerSchema, loginSchema, changePasswordSchema } from "../schemas/auth.schema";
 
 const router = Router();
 
@@ -44,41 +49,17 @@ const router = Router();
  *       409:
  *         description: Email or Username exists
  */
-router.post("/register", authLimiter, async (req: Request, res: Response) => {
-  try {
+router.post(
+  "/register",
+  authLimiter,
+  validateResource(registerSchema),
+  asyncHandler(async (req: Request, res: Response) => {
     const { email, password, name, username } = req.body;
-
-    // Validation
-    if (!email || !password || !name || !username) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Email, password, name, and username are required",
-      });
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Invalid email format",
-      });
-      return;
-    }
 
     // Validate password strength
     const passwordValidation = validatePasswordStrength(password);
     if (!passwordValidation.valid) {
-      res.status(400).json({
-        success: false,
-        error: "Weak password",
-        message: passwordValidation.errors[0],
-        errors: passwordValidation.errors,
-      });
-      return;
+      throw new AppError(passwordValidation.errors[0], 400);
     }
 
     // Check if email already exists
@@ -87,23 +68,15 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
     });
 
     if (existingEmail) {
-      res.status(409).json({
-        success: false,
-        error: "Email exists",
-        message: "An account with this email already exists",
-      });
-      return;
+      throw new AppError("An account with this email already exists", 409);
     }
 
     // Check if username already exists
     const sanitizedUsername = sanitizeUsername(username);
+
+    // Additional username validation (though regex in schema could handle this)
     if (sanitizedUsername.length < 3) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Username must be at least 3 characters (letters, numbers, underscore only)",
-      });
-      return;
+      throw new AppError("Username must be at least 3 characters", 400);
     }
 
     const existingUsername = await prisma.user.findUnique({
@@ -111,12 +84,7 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
     });
 
     if (existingUsername) {
-      res.status(409).json({
-        success: false,
-        error: "Username exists",
-        message: "This username is already taken",
-      });
-      return;
+      throw new AppError("This username is already taken", 409);
     }
 
     // Get default USER role
@@ -125,12 +93,8 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
     });
 
     if (!defaultRole) {
-      res.status(500).json({
-        success: false,
-        error: "Configuration error",
-        message: "Default user role not found. Please run database seed.",
-      });
-      return;
+      logger.error("Default user role not found in database");
+      throw new AppError("Configuration error: Default role not found", 500);
     }
 
     // Hash password
@@ -160,7 +124,9 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
     });
 
     // Get permissions from role
-    const permissions = user.roles.flatMap((ur: { role: { permissions: string[] } }) => ur.role.permissions);
+    const permissions = user.roles.flatMap(
+      (ur: { role: { permissions: string[] } }) => ur.role.permissions
+    );
 
     // Generate tokens
     const accessToken = generateAccessToken(user.id, permissions);
@@ -175,6 +141,8 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
         deviceInfo: req.headers["user-agent"]?.substring(0, 255) || null,
       },
     });
+
+    logger.info(`New user registered: ${user.email}`);
 
     res.status(201).json({
       success: true,
@@ -195,15 +163,8 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
         refreshToken,
       },
     });
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to create account",
-    });
-  }
-});
+  })
+);
 
 /**
  * @swagger
@@ -229,18 +190,12 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
  *       401:
  *         description: Invalid credentials
  */
-router.post("/login", authLimiter, async (req: Request, res: Response) => {
-  try {
+router.post(
+  "/login",
+  authLimiter,
+  validateResource(loginSchema),
+  asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Email and password are required",
-      });
-      return;
-    }
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -263,34 +218,22 @@ router.post("/login", authLimiter, async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-        message: "Email or password is incorrect",
-      });
-      return;
+      throw new AppError("Email or password is incorrect", 401);
     }
 
     // Check if user has a password (OAuth-only users may not)
     if (!user.password) {
-      res.status(401).json({
-        success: false,
-        error: "OAuth account",
-        message: "This account uses Google sign-in. Please use 'Continue with Google' instead.",
-      });
-      return;
+      throw new AppError(
+        "This account uses Google sign-in. Please use 'Continue with Google' instead.",
+        401
+      );
     }
 
     // Verify password
     const isValidPassword = await verifyPassword(password, user.password);
 
     if (!isValidPassword) {
-      res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-        message: "Email or password is incorrect",
-      });
-      return;
+      throw new AppError("Email or password is incorrect", 401);
     }
 
     // Collect permissions
@@ -338,68 +281,40 @@ router.post("/login", authLimiter, async (req: Request, res: Response) => {
         refreshToken,
       },
     });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to login",
-    });
-  }
-});
+  })
+);
 
 /**
  * POST /auth/change-password
  * Change current user's password
  */
-router.post("/change-password", authenticate, async (req: Request, res: Response) => {
-  try {
+
+router.post(
+  "/change-password",
+  authenticate,
+  validateResource(changePasswordSchema),
+  asyncHandler(async (req: Request, res: Response) => {
     const { currentPassword, newPassword } = req.body;
     const userId = (req as AuthRequest).user?.userId;
-
-    if (!currentPassword || !newPassword) {
-      res.status(400).json({
-        success: false,
-        error: "Validation error",
-        message: "Current and new password are required",
-      });
-      return;
-    }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user || !user.password) {
-      res.status(404).json({
-        success: false,
-        error: "User not found",
-        message: "User not found or uses external auth",
-      });
-      return;
+      throw new AppError("User not found or uses external auth", 404);
     }
 
     // Verify current password
     const isValid = await verifyPassword(currentPassword, user.password);
     if (!isValid) {
-      res.status(401).json({
-        success: false,
-        error: "Invalid password",
-        message: "Current password is incorrect",
-      });
-      return;
+      throw new AppError("Current password is incorrect", 401);
     }
 
     // Validate new password strength
     const passwordValidation = validatePasswordStrength(newPassword);
     if (!passwordValidation.valid) {
-      res.status(400).json({
-        success: false,
-        error: "Weak password",
-        message: passwordValidation.errors[0],
-        errors: passwordValidation.errors,
-      });
-      return;
+      throw new AppError(passwordValidation.errors[0], 400);
     }
 
     // Update password
@@ -409,7 +324,7 @@ router.post("/change-password", authenticate, async (req: Request, res: Response
       data: { password: hashedPassword },
     });
 
-    // Revoke all refresh tokens (security best practice)
+    // Revoke all refresh tokens
     await prisma.refreshToken.deleteMany({
       where: { userId },
     });
@@ -418,16 +333,8 @@ router.post("/change-password", authenticate, async (req: Request, res: Response
       success: true,
       message: "Password changed successfully. Please login again.",
     });
-
-  } catch (error) {
-    console.error("Change password error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-      message: "Failed to change password",
-    });
-  }
-});
+  })
+);
 
 /**
  * POST /auth/refresh

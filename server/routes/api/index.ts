@@ -15,7 +15,6 @@ import promptsRoutes from "./prompts";
 import votesRoutes from "./votes";
 import commentsRoutes from "./comments";
 import usersRoutes from "./users";
-
 const router = Router();
 
 // ============================================================================
@@ -46,5 +45,29 @@ router.use("/", votesRoutes);
 // Upload endpoint
 import uploadRoutes from "./upload";
 router.use("/upload", uploadRoutes);
+
+// Proxy endpoint (LLM Playground)
+import proxyRoutes from "./proxy";
+router.use("/proxy", proxyRoutes);
+
+
+// Agent endpoint (Phase 9)
+import agentRoutes from "./agent";
+router.use("/agent", agentRoutes);
+
+// Architect endpoint (Phase 13)
+// Architect endpoint (Phase 13)
+import architectRoutes from "./architect";
+router.use("/architect", architectRoutes);
+
+// Gamification endpoint (Phase 10)
+import gamificationRoutes from "./gamification";
+router.use("/gamification", gamificationRoutes);
+
+// Analytics endpoint (Phase 11)
+import analyticsRoutes from "./analytics";
+router.use("/analytics", analyticsRoutes);
+
+
 
 export default router;

@@ -40,6 +40,7 @@
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_ACCESS_SECRET` | Secret for access tokens |
 | `JWT_REFRESH_SECRET` | Secret for refresh tokens |
+| `OPENAI_API_KEY` | OpenAI API Key (Required for AI Agents) |
 
 ### Optional
 | Variable | Default | Description |

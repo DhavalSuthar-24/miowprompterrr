@@ -396,3 +396,52 @@ model UserBadge {
 
   @@id([userId, badgeId])
 }
+
+// ============================================================================
+// PHASE 5: ARCHITECT AGENT SYSTEM
+// ============================================================================
+
+model AgentSession {
+  id                 String         @id @default(uuid())
+  userId             String?        // Optional, can be anonymous or authenticated
+  title              String?
+  status             String         @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED
+  currentPhase       String         @default("RESEARCH_VALIDATE")
+  projectDescription String?        @db.Text
+  techStack          Json?          // Array of strings
+  requirements       Json?          // Array of strings
+  phases             Json?          // Complex object of ProjectPhases
+  artifacts          Json?          // Key-value store for generated artifacts
+  messages           AgentMessage[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  // Phase 9: Community & Marketplace
+  isPublic           Boolean        @default(false)
+  tags               String[]       // e.g. ["Next.js", "SaaS", "E-commerce"]
+  forkCount          Int            @default(0)
+  parentSessionId    String?        // If forked from another session
+  parentSession      AgentSession?  @relation("SessionForks", fields: [parentSessionId], references: [id])
+  forks              AgentSession[] @relation("SessionForks")
+
+  // Phase 12: Expert Personas
+  personality        String         @default("startup-cto")
+
+  @@index([userId])
+  @@index([isPublic])
+  @@index([parentSessionId])
+}
+
+model AgentMessage {
+  id        String       @id @default(uuid())
+  sessionId String
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String       // user, assistant, system
+  content   String       @db.Text
+  metadata  Json?
+  tokenUsage Int?         // Phase 11: Analytics
+  latencyMs  Int?         // Phase 11: Analytics
+  createdAt DateTime     @default(now())
+
+  @@index([sessionId])
+}

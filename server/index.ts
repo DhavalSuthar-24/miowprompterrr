@@ -1,5 +1,5 @@
 import "dotenv/config";
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { config } from "./config";
@@ -7,6 +7,7 @@ import { authRoutes, onboardingRoutes, googleRoutes, apiRoutes, adminRoutes } fr
 import { globalLimiter, configureSecurity } from "./middleware/security";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import { globalErrorHandler } from "./middleware/error";
 
 const app = express();
 
@@ -65,16 +66,8 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Global error handler
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("Unhandled error:", err);
-
-  res.status(500).json({
-    success: false,
-    error: "Internal server error",
-    message: config.isDevelopment ? err.message : "An unexpected error occurred",
-    ...(config.isDevelopment && { stack: err.stack }),
-  });
-});
+// Global error handler
+app.use(globalErrorHandler);
 
 // Start server
 // Start server if not in test mode
