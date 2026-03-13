@@ -9,6 +9,7 @@ import {
   Plus,
   X,
   Copy,
+  Link2,
   Download,
   Upload,
   Trash2,
@@ -260,7 +261,7 @@ const MiowNationInner = () => {
           </div>
         )}
 
-        <div className="relative z-10 max-w-7xl mx-auto p-3 sm:p-4 md:p-6">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8 animate-slide-up">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -281,24 +282,27 @@ const MiowNationInner = () => {
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button
                   onClick={toggleTheme}
-                  className={`p-2.5 rounded-xl transition-all duration-200 ${t.button}`}
+                  className={`p-2.5 rounded-xl btn-touch transition-all duration-200 ${t.button}`}
                   title="Toggle theme"
+                  aria-label="Toggle theme"
                 >
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
                 {isEnabled('showAnalyticsWidget') && (
                   <button
                     onClick={() => setShowAnalytics(!showAnalytics)}
-                    className={`p-2.5 rounded-xl transition-all duration-200 ${showAnalytics ? t.buttonActive : t.button}`}
+                    className={`p-2.5 rounded-xl btn-touch transition-all duration-200 ${showAnalytics ? t.buttonActive : t.button}`}
                     title="Toggle analytics"
+                    aria-label="Toggle analytics"
                   >
                     <TrendingUp className="w-5 h-5" />
                   </button>
                 )}
                 <button
                   onClick={openSettings}
-                  className={`p-2.5 rounded-xl transition-all duration-200 ${t.button}`}
+                  className={`p-2.5 rounded-xl btn-touch transition-all duration-200 ${t.button}`}
                   title="Settings"
+                  aria-label="Open settings"
                 >
                   <Settings2 className="w-5 h-5" />
                 </button>
@@ -314,7 +318,7 @@ const MiowNationInner = () => {
                   onClick={() => {
                     const hash = serializeState();
                     navigator.clipboard.writeText(`${location.origin}${location.pathname}#p=${hash}`);
-                    toast.success('Shareable URL copied!', { icon: '🔗' });
+                    toast.success('Shareable URL copied!', { icon: <Link2 className="w-4 h-4 text-blue-500" /> });
                   }}
                   className={`px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${t.accent} ${t.accentHover}`}
                 >
@@ -417,7 +421,7 @@ const MiowNationInner = () => {
                     )}
                     <button
                       onClick={() => loadPresetMode(mode.id)}
-                      className={`w-full mt-4 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${t.accent} ${t.accentHover}`}
+                      className={`w-full mt-4 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${t.cta} ${t.ctaHover}`}
                     >
                       Load Preset
                     </button>
@@ -456,7 +460,7 @@ const MiowNationInner = () => {
                     </p>
                     <button
                       onClick={() => loadQuickTemplate(template.template)}
-                      className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${t.accent} ${t.accentHover}`}
+                      className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${t.cta} ${t.ctaHover}`}
                     >
                       Load Template
                     </button>
@@ -468,7 +472,7 @@ const MiowNationInner = () => {
 
           {/* Guide Tab */}
           {activeTab === "guide" && isEnabled('showGuideTab') && (
-            <AnimatedCard className={`${t.card} rounded-xl border ${t.border} p-4 sm:p-6 max-h-[70vh] overflow-y-auto`}>
+            <AnimatedCard className={`${t.card} ${t.scrollbar} rounded-xl border ${t.border} p-4 sm:p-6 max-h-[70vh] overflow-y-auto`}>
               <h2 className={`text-xl font-semibold mb-6 flex items-center gap-2 ${t.text}`}>
                 <Book className="w-5 h-5 text-blue-500" />
                 Prompt Engineering Guide
@@ -519,8 +523,8 @@ const MiowNationInner = () => {
               {/* Sidebar */}
               <div
                 className={`
-                  lg:col-span-1 space-y-3 
-                  max-h-[calc(100vh-200px)] overflow-y-auto pr-2 
+                  lg:col-span-1 space-y-3 lg:sticky lg:top-28 lg:self-start
+                  max-h-[calc(100vh-200px)] overflow-y-auto pr-2 ${t.scrollbar}
                   transition-all ${!expandedSidebar && "hidden"}
                 `}
               >
@@ -814,7 +818,8 @@ const MiowNationInner = () => {
                       />
                       <button
                         onClick={savePrompt}
-                        className={`p-2.5 rounded-lg transition-colors ${t.button}`}
+                        className={`p-2.5 rounded-lg btn-touch transition-colors ${t.button}`}
+                        aria-label="Save prompt"
                       >
                         <Save className="w-4 h-4" />
                       </button>
@@ -826,7 +831,7 @@ const MiowNationInner = () => {
                       placeholder="Search..."
                       className={`w-full p-2.5 rounded-lg border text-sm mb-2 transition-colors ${t.input}`}
                     />
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                    <div className={`space-y-1 max-h-48 overflow-y-auto ${t.scrollbar}`}>
                       {savedPrompts
                         .filter((p) => {
                           if (!savedSearch.trim()) return true;
@@ -858,6 +863,7 @@ const MiowNationInner = () => {
                               <button
                                 onClick={() => deletePrompt(saved.id)}
                                 className="text-red-500 hover:text-red-400 transition-colors p-1"
+                                aria-label={`Delete saved prompt ${saved.name}`}
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -873,7 +879,8 @@ const MiowNationInner = () => {
               <div className="lg:col-span-3 space-y-4">
                 <button
                   onClick={() => setExpandedSidebar(!expandedSidebar)}
-                  className={`lg:hidden p-2.5 rounded-lg ${t.button}`}
+                  className={`lg:hidden p-2.5 rounded-lg btn-touch ${t.button}`}
+                  aria-label={expandedSidebar ? "Collapse sidebar" : "Expand sidebar"}
                 >
                   {expandedSidebar ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
@@ -906,7 +913,7 @@ const MiowNationInner = () => {
                         flex-1 min-w-[150px] py-2.5 px-4 rounded-lg font-medium 
                         flex items-center justify-center transition-colors 
                         disabled:opacity-50 disabled:cursor-not-allowed 
-                        ${t.accent} ${t.accentHover}
+                        ${t.cta} ${t.ctaHover}
                       `}
                     >
                       <Zap className="w-4 h-4 mr-2" />
@@ -921,8 +928,9 @@ const MiowNationInner = () => {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className={`p-2.5 rounded-lg transition-colors ${t.button}`}
+                      className={`p-2.5 rounded-lg btn-touch transition-colors ${t.button}`}
                       title="Import prompt"
+                      aria-label="Import prompt"
                     >
                       <Upload className="w-5 h-5" />
                     </button>
@@ -974,7 +982,7 @@ const MiowNationInner = () => {
                         <Plus className="w-4 h-4 mr-1" /> Add Example
                       </button>
                     </div>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className={`space-y-2 max-h-48 overflow-y-auto ${t.scrollbar}`}>
                       {examples.map((ex, i) => (
                         <div key={i} className={`p-3 rounded-lg border text-sm ${t.border} ${t.cardHover}`}>
                           <div className={t.text}>
@@ -1025,7 +1033,7 @@ const MiowNationInner = () => {
                         <Plus className="w-4 h-4 mr-1" /> Add Variable
                       </button>
                     </div>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                    <div className={`space-y-2 max-h-32 overflow-y-auto ${t.scrollbar}`}>
                       {variables.map((v, i) => (
                         <div key={i} className={`p-3 rounded-lg border text-sm ${t.border} ${t.cardHover}`}>
                           <div className={t.text}>
@@ -1118,7 +1126,7 @@ const MiowNationInner = () => {
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(improvedPrompt);
-                            toast.success('Copied to clipboard!', { icon: '✨' });
+                            toast.success('Copied to clipboard!', { icon: <CheckCircle className="w-4 h-4 text-emerald-500" /> });
                           }}
                           className={`py-2 px-4 rounded-lg text-sm font-medium flex items-center transition-colors ${t.button}`}
                         >
@@ -1153,7 +1161,7 @@ const MiowNationInner = () => {
                     </div>
                     <div
                       className={`
-                        rounded-lg p-4 border max-h-96 overflow-y-auto 
+                        rounded-lg p-4 border max-h-96 overflow-y-auto ${t.scrollbar}
                         ${t.border} ${isDark ? "bg-slate-950" : "bg-slate-50"}
                       `}
                     >
