@@ -39,3 +39,4 @@ bun.lockb
 vector_store.db
 memory.db
 src/generated/prisma
+.env
