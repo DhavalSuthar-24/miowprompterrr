@@ -50,13 +50,18 @@ const SettingsPanel = ({ onSettingsReset }) => {
             />
 
             {/* Panel */}
-            <div className={`
+            <div
+                className={`
         fixed right-0 top-0 bottom-0 w-full max-w-md z-50
         ${t.cardSolid} ${t.border} border-l
         shadow-2xl
         overflow-hidden
         animate-slide-in-right
-      `}>
+      `}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Settings panel"
+            >
                 {/* Header */}
                 <div className={`
           flex items-center justify-between p-4 border-b ${t.border}
@@ -72,14 +77,15 @@ const SettingsPanel = ({ onSettingsReset }) => {
                     </div>
                     <button
                         onClick={closeSettings}
-                        className={`p-2 rounded-lg ${t.buttonGhost} transition-colors`}
+                        className={`p-2 rounded-lg btn-touch ${t.buttonGhost} transition-colors`}
+                        aria-label="Close settings"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto h-[calc(100vh-140px)] p-4 space-y-6">
+                <div className={`overflow-y-auto h-[calc(100vh-140px)] p-4 space-y-6 ${t.scrollbar}`}>
                     {/* Theme Section */}
                     <div className="space-y-3">
                         <h3 className={`text-sm font-medium ${t.text}`}>Appearance</h3>

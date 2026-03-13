@@ -1,1 +1,25 @@
 node_modules
+dist
+.vite
+
+# Env
+.env
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / Editor
+.DS_Store
+.idea
+.vscode
+*.swp
+
+# Tooling
+.eslintcache
+coverage
+.cache
+.pnpm-store

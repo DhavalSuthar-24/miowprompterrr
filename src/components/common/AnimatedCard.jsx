@@ -6,7 +6,7 @@ const AnimatedCard = React.memo(({ children, className = "", hover = false, dela
             className={`
                 animate-slide-up
                 transition-all duration-200
-                ${hover ? "hover:translate-y-[-2px] hover:shadow-lg cursor-pointer" : ""} 
+                ${hover ? "hover:translate-y-[-1px] cursor-pointer" : ""} 
                 ${className}
             `}
             style={{
