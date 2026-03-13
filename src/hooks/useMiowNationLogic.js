@@ -260,11 +260,11 @@ export const useMiowNationLogic = () => {
   }, [inputPrompt]);
 
   const loadPresetMode = useCallback((modeId) => {
-    const mode = presetModes.find((m) => m.id === modeId);
+    const mode = presets.find((m) => m.id === modeId);
     if (mode) {
       setSettings((prev) => ({ ...prev, ...mode.config }));
     }
-  }, [presetModes, settings]);
+  }, [presets, settings]);
 
   const generatePromptByTechnique = useCallback(() => {
     let prompt = "";
